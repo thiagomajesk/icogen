@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "skills": {
+    "accessibility": {
+      "source": "yonatangross/orchestkit",
+      "sourceType": "github",
+      "computedHash": "bfe411e39669e56a8fd23b6a8c5838424c0c328eaad2cfc806530c618eba98c5"
+    },
+    "playwright-cli": {
+      "source": "microsoft/playwright-cli",
+      "sourceType": "github",
+      "computedHash": "7075ab30f588019197a2f1518bb4c9d33d69d33352af079b5f9c60303ad3886e"
+    },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "computedHash": "4365be772fd3b41994a72ad478472c6d680678e7f3859860ab010e9c46e48ee0"
+    }
+  }
+}
