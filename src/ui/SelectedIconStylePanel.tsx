@@ -3,11 +3,13 @@ import {
   ActionIcon,
   Button,
   Checkbox,
+  type ComboboxItem,
   ColorInput,
   Divider,
   Group,
   NumberInput,
   ScrollArea,
+  type SelectProps,
   Select,
   Slider,
   Stack,
@@ -16,8 +18,13 @@ import {
 } from "@mantine/core";
 import {
   IconArrowLeft,
+  IconArrowDown,
+  IconArrowDownRight,
+  IconArrowRight,
+  IconArrowUpRight,
   IconChevronLeft,
   IconChevronRight,
+  IconCircle,
   IconColorPicker,
   IconFlipHorizontal,
   IconFlipVertical,
@@ -64,10 +71,10 @@ const foregroundTypeOptions = [
 
 const gradientOptions = [
   { value: "radial", label: "Radial" },
-  { value: "horizontal", label: "Horizontal →" },
-  { value: "vertical", label: "Vertical ↓" },
-  { value: "diagonal-forward", label: "Diagonal ↘" },
-  { value: "diagonal-backward", label: "Diagonal ↗" },
+  { value: "horizontal", label: "Horizontal" },
+  { value: "vertical", label: "Vertical" },
+  { value: "diagonal-forward", label: "Diagonal Forward" },
+  { value: "diagonal-backward", label: "Diagonal Backward" },
 ];
 
 const strokeOptions = [
@@ -107,6 +114,41 @@ const backgroundShapeOptions: Array<{
 }> = [{ value: "none", label: "None" }, ...STYLE_SHAPE_OPTIONS];
 
 const eyeDropperIcon = <IconColorPicker size={14} stroke={1.8} />;
+
+function gradientTypeIcon(gradientType: string) {
+  const size = 14;
+  const stroke = 1.9;
+
+  if (gradientType === "horizontal") {
+    return <IconArrowRight size={size} stroke={stroke} />;
+  }
+
+  if (gradientType === "vertical") {
+    return <IconArrowDown size={size} stroke={stroke} />;
+  }
+
+  if (gradientType === "diagonal-forward") {
+    return <IconArrowDownRight size={size} stroke={stroke} />;
+  }
+
+  if (gradientType === "diagonal-backward") {
+    return <IconArrowUpRight size={size} stroke={stroke} />;
+  }
+
+  return <IconCircle size={size} stroke={stroke} />;
+}
+
+const renderGradientOption: NonNullable<SelectProps["renderOption"]> = ({
+  option,
+}) => {
+  const item = option as ComboboxItem;
+  return (
+    <Group gap={8} wrap="nowrap">
+      {gradientTypeIcon(item.value)}
+      <span>{item.label}</span>
+    </Group>
+  );
+};
 
 function toNumber(value: string | number, fallback: number): number {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -298,6 +340,8 @@ export function SelectedIconStylePanel({
                         label="Gradient"
                         variant="filled"
                         data={gradientOptions}
+                        leftSection={gradientTypeIcon(background.gradientType)}
+                        renderOption={renderGradientOption}
                         value={background.gradientType}
                         allowDeselect={false}
                         onChange={(value) =>
@@ -629,6 +673,8 @@ export function SelectedIconStylePanel({
                         label="Gradient"
                         variant="filled"
                         data={gradientOptions}
+                        leftSection={gradientTypeIcon(foreground.gradientType)}
+                        renderOption={renderGradientOption}
                         value={foreground.gradientType}
                         allowDeselect={false}
                         onChange={(value) =>
