@@ -362,13 +362,12 @@ test("buildCompositeSvg renders all supported background shapes", () => {
     { shape: "circle", marker: '<circle cx="256" cy="256" r="240"' },
     { shape: "triangle", marker: 'points="256,16 496,496 16,496"' },
     { shape: "square", marker: '<rect x="0" y="0" width="512" height="512"' },
-    { shape: "square-alt", marker: 'points="256,16 496,256 256,496 16,256"' },
     { shape: "rounded-square", marker: 'rx="64" ry="64"' },
     { shape: "star5", marker: "<polygon points=" },
-    { shape: "star5-alt", marker: "<polygon points=" },
     { shape: "star6", marker: "<polygon points=" },
-    { shape: "star6-alt", marker: "<polygon points=" },
     { shape: "star7", marker: "<polygon points=" },
+    { shape: "hexa", marker: "<polygon points=" },
+    { shape: "octa", marker: "<polygon points=" },
   ];
 
   for (const item of shapeMarkers) {
@@ -394,7 +393,7 @@ test("buildCompositeSvg renders all supported background shapes", () => {
   }
 });
 
-test("buildCompositeSvg renders explicit triangle and square-alt background primitives", () => {
+test("buildCompositeSvg renders explicit triangle and square background primitives", () => {
   const triangle = buildCompositeSvg(
     defaultBaseLayer,
     defaultOverlayLayer,
@@ -411,7 +410,7 @@ test("buildCompositeSvg renders explicit triangle and square-alt background prim
   );
   assert.match(triangle, /<polygon points="256,16 496,496 16,496"/);
 
-  const squareAlt = buildCompositeSvg(
+  const square = buildCompositeSvg(
     defaultBaseLayer,
     defaultOverlayLayer,
     defaultEffects,
@@ -419,13 +418,13 @@ test("buildCompositeSvg renders explicit triangle and square-alt background prim
     {
       ...defaultBackground,
       type: "flat",
-      shape: "square-alt",
+      shape: "square",
     },
     null,
     new Map(),
     null,
   );
-  assert.match(squareAlt, /<polygon points="256,16 496,256 256,496 16,256"/);
+  assert.match(square, /<rect x="0" y="0" width="512" height="512"/);
 });
 
 test("buildCompositeSvg composes foreground inner shadow with CSS filter chain", () => {

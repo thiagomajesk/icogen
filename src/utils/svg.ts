@@ -395,6 +395,21 @@ function buildStarPoints(points: number, rotationDeg: number): string {
   return vertices.join(" ");
 }
 
+function buildRegularPolygonPoints(sides: number, rotationDeg: number): string {
+  const center = 256;
+  const radius = 240;
+  const vertices: string[] = [];
+
+  for (let index = 0; index < sides; index += 1) {
+    const angle = ((rotationDeg - 90 + (360 / sides) * index) * Math.PI) / 180;
+    const x = center + Math.cos(angle) * radius;
+    const y = center + Math.sin(angle) * radius;
+    vertices.push(`${x.toFixed(3)},${y.toFixed(3)}`);
+  }
+
+  return vertices.join(" ");
+}
+
 function buildShapeElement(
   shape: BackgroundStyleState["shape"],
   fill: string,
@@ -450,10 +465,6 @@ function buildShapeElement(
     return `<rect x="0" y="0" width="512" height="512" ${attrs} />`;
   }
 
-  if (shape === "square-alt") {
-    return `<polygon points="256,16 496,256 256,496 16,256" ${attrs} />`;
-  }
-
   if (shape === "rounded-square") {
     return `<rect x="0" y="0" width="512" height="512" rx="64" ry="64" ${attrs} />`;
   }
@@ -462,19 +473,18 @@ function buildShapeElement(
     return `<polygon points="${buildStarPoints(5, 0)}" ${attrs} />`;
   }
 
-  if (shape === "star5-alt") {
-    return `<polygon points="${buildStarPoints(5, 36)}" ${attrs} />`;
-  }
-
   if (shape === "star6") {
     return `<polygon points="${buildStarPoints(6, 0)}" ${attrs} />`;
   }
 
-  if (shape === "star6-alt") {
-    return `<polygon points="${buildStarPoints(6, 30)}" ${attrs} />`;
+  if (shape === "star7") {
+    return `<polygon points="${buildStarPoints(7, 0)}" ${attrs} />`;
   }
 
-  return `<polygon points="${buildStarPoints(7, 0)}" ${attrs} />`;
+  if (shape === "hexa") {
+    return `<polygon points="${buildRegularPolygonPoints(6, 0)}" ${attrs} />`;
+  }
+  return `<polygon points="${buildRegularPolygonPoints(8, 0)}" ${attrs} />`;
 }
 
 function buildClipPathShape(
@@ -500,10 +510,6 @@ function buildClipPathShape(
     return `<rect x="0" y="0" width="512" height="512"${transform} />`;
   }
 
-  if (shape === "square-alt") {
-    return `<polygon points="256,16 496,256 256,496 16,256"${transform} />`;
-  }
-
   if (shape === "rounded-square") {
     return `<rect x="0" y="0" width="512" height="512" rx="64" ry="64"${transform} />`;
   }
@@ -512,19 +518,18 @@ function buildClipPathShape(
     return `<polygon points="${buildStarPoints(5, 0)}"${transform} />`;
   }
 
-  if (shape === "star5-alt") {
-    return `<polygon points="${buildStarPoints(5, 36)}"${transform} />`;
-  }
-
   if (shape === "star6") {
     return `<polygon points="${buildStarPoints(6, 0)}"${transform} />`;
   }
 
-  if (shape === "star6-alt") {
-    return `<polygon points="${buildStarPoints(6, 30)}"${transform} />`;
+  if (shape === "star7") {
+    return `<polygon points="${buildStarPoints(7, 0)}"${transform} />`;
   }
 
-  return `<polygon points="${buildStarPoints(7, 0)}"${transform} />`;
+  if (shape === "hexa") {
+    return `<polygon points="${buildRegularPolygonPoints(6, 0)}"${transform} />`;
+  }
+  return `<polygon points="${buildRegularPolygonPoints(8, 0)}"${transform} />`;
 }
 
 function buildBackgroundMarkup(background: BackgroundStyleState): {

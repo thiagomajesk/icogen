@@ -69,13 +69,12 @@ export type BackgroundShape =
   | "circle"
   | "triangle"
   | "square"
-  | "square-alt"
   | "rounded-square"
   | "star5"
-  | "star5-alt"
   | "star6"
-  | "star6-alt"
-  | "star7";
+  | "star7"
+  | "hexa"
+  | "octa";
 export type StrokeStyle =
   | "solid"
   | "dashed"

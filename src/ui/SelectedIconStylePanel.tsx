@@ -41,7 +41,7 @@ import {
   isDefaultForegroundStyle,
 } from "../core/style-state";
 import type { BackgroundStyleState, ForegroundStyleState } from "../core/types";
-import { STYLE_SHAPE_OPTIONS } from "./style-shapes";
+import { STYLE_SHAPE_OPTIONS, StyleShapeIcon } from "./style-shapes";
 
 interface SelectedIconStylePanelProps {
   background: BackgroundStyleState;
@@ -145,6 +145,38 @@ const renderGradientOption: NonNullable<SelectProps["renderOption"]> = ({
   return (
     <Group gap={8} wrap="nowrap">
       {gradientTypeIcon(item.value)}
+      <span>{item.label}</span>
+    </Group>
+  );
+};
+
+function backgroundShapeOptionIcon(shape: BackgroundShapeControlValue) {
+  if (shape === "none") {
+    return <span style={{ width: 14, height: 14, display: "inline-block" }} />;
+  }
+
+  return (
+    <span
+      style={{
+        width: 14,
+        height: 14,
+        display: "inline-flex",
+        color: "var(--mantine-color-dimmed)",
+      }}
+    >
+      <StyleShapeIcon shape={shape} />
+    </span>
+  );
+}
+
+const renderBackgroundShapeOption: NonNullable<SelectProps["renderOption"]> = ({
+  option,
+}) => {
+  const item = option as ComboboxItem;
+
+  return (
+    <Group gap={8} wrap="nowrap">
+      {backgroundShapeOptionIcon(item.value as BackgroundShapeControlValue)}
       <span>{item.label}</span>
     </Group>
   );
@@ -477,14 +509,20 @@ export function SelectedIconStylePanel({
                       <Divider />
                       </>
                     ) : null}
-                    <Select
-                      label="Shape"
-                      variant="filled"
-                      data={backgroundShapeOptions}
-                      value={backgroundShapeControlValue}
-                      allowDeselect={false}
-                      onChange={(value) =>
-                        value === "none"
+                  <Select
+                    label="Shape"
+                    variant="filled"
+                    data={backgroundShapeOptions}
+                    value={backgroundShapeControlValue}
+                    leftSection={
+                      backgroundShapeControlValue === "none"
+                        ? null
+                        : backgroundShapeOptionIcon(backgroundShapeControlValue)
+                    }
+                    renderOption={renderBackgroundShapeOption}
+                    allowDeselect={false}
+                    onChange={(value) =>
+                      value === "none"
                           ? onBackgroundChange({
                               ...background,
                               type: "none",

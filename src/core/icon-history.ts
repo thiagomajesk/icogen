@@ -1,4 +1,7 @@
-import type { BackgroundStyleState, ForegroundStyleState } from "./types";
+import type {
+  BackgroundStyleState,
+  ForegroundStyleState,
+} from "./types";
 import {
   isDefaultBackgroundStyle,
   isDefaultForegroundStyle,
