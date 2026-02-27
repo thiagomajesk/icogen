@@ -123,6 +123,9 @@ test("buildForegroundStyledSvg applies per-piece styles, gradients, and blink or
         gradientTo: "#f0f0f0",
         blendMode: "screen",
         blendOpacity: 0.4,
+        strokeStyle: "dashed",
+        frameWidth: 2,
+        frameColor: "#ff00ff",
       },
       "piece-3": {
         ...defaultForeground,
@@ -137,6 +140,9 @@ test("buildForegroundStyledSvg applies per-piece styles, gradients, and blink or
         positionY: -10,
         skewX: 5,
         skewY: -2,
+        strokeStyle: "dotted",
+        frameWidth: 3,
+        frameColor: "#00aa00",
       },
     },
     { pathId: "piece-2", token: 42 },
@@ -151,12 +157,18 @@ test("buildForegroundStyledSvg applies per-piece styles, gradients, and blink or
   assert.match(svg, /<animate attributeName="opacity"/);
   assert.match(svg, /<g style="mix-blend-mode:screen;opacity:0.4;">/);
   assert.match(svg, /fill:url\(#fg-piece-gradient-1\)/);
+  assert.match(svg, /stroke:#ff00ff/);
+  assert.match(svg, /stroke-width:2/);
+  assert.match(svg, /stroke-dasharray:8,4/);
   assert.match(svg, /fill="#00ff00"/);
   assert.match(svg, /data-foreground-piece-id="piece-4"/);
   assert.match(
     svg,
     /translate\(256 256\) translate\(25.6 -25.6\) rotate\(20\) scale\(1.2 1.2\) skewX\(5\) skewY\(-2\) translate\(-256 -256\)/,
   );
+  assert.match(svg, /stroke="#00aa00"/);
+  assert.match(svg, /stroke-dasharray="3,3"/);
+  assert.match(svg, /stroke-linecap="round"/);
   assert.match(svg, /fill="none"/);
 
   const piece1Index = svg.indexOf('data-foreground-piece-id="piece-1"');

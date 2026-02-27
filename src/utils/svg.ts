@@ -221,10 +221,19 @@ function clampSurfaceOpacity(value: number | null | undefined): number {
 
 function buildSurfaceBlendStyle(
   surface: SurfaceStyleState | null | undefined,
-): string {
+): string | null {
+  const declarations: string[] = [];
   const blendMode = surface?.blendMode ?? "normal";
+  if (blendMode !== "normal") {
+    declarations.push(`mix-blend-mode:${blendMode};`);
+  }
+
   const opacity = clampSurfaceOpacity(surface?.blendOpacity);
-  return `mix-blend-mode:${blendMode};opacity:${opacity};`;
+  if (opacity !== 1) {
+    declarations.push(`opacity:${opacity};`);
+  }
+
+  return declarations.length > 0 ? declarations.join("") : null;
 }
 
 function parseHexColor(
@@ -700,11 +709,15 @@ export function buildCompositeSvg(
   if (globalDropShadow) {
     filterParts.push(globalDropShadow);
   }
-  filterParts.push(
-    `blur(${effects.blur}px)`,
-    `hue-rotate(${effects.hueRotate}deg)`,
-    `saturate(${effects.saturate}%)`,
-  );
+  if (effects.blur !== 0) {
+    filterParts.push(`blur(${effects.blur}px)`);
+  }
+  if (effects.hueRotate !== 0) {
+    filterParts.push(`hue-rotate(${effects.hueRotate}deg)`);
+  }
+  if (effects.saturate !== 100) {
+    filterParts.push(`saturate(${effects.saturate}%)`);
+  }
 
   const filter = filterParts.join(" ");
   const foregroundBlendStyle = buildSurfaceBlendStyle(foreground);
@@ -722,15 +735,23 @@ export function buildCompositeSvg(
   const layerMarkup = foregroundInnerShadowDef
     ? `<g filter="url(#fg-inner-shadow)">${baseMarkup}${overlayMarkup}</g>`
     : `${baseMarkup}${overlayMarkup}`;
+  const layerStyleParts: string[] = [];
+  if (filter) {
+    layerStyleParts.push(`filter:${filter};`);
+  }
+  if (foregroundBlendStyle) {
+    layerStyleParts.push(foregroundBlendStyle);
+  }
+  const layerContent = layerStyleParts.length
+    ? `<g style="${layerStyleParts.join("")}">${layerMarkup}</g>`
+    : layerMarkup;
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" style="isolation:isolate;">
   <defs>${backgroundMarkup.defs}${defs.join("")}</defs>
   ${backgroundMarkup.shape}
   <g${wrapperTransform}${clipPathAttr}>
-    <g style="filter:${filter};${foregroundBlendStyle}">
-      ${layerMarkup}
-    </g>
+    ${layerContent}
   </g>
 </svg>`.trim();
 }

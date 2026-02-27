@@ -253,21 +253,25 @@ export function splitPathDataOnMoveTo(pathData: string): string[] {
   return chunks.length > 0 ? chunks : [trimmed];
 }
 
-function getStyleFillValue(style: string): string | null {
+function getStylePropertyValue(style: string, property: string): string | null {
   const declarations = style.split(";");
   for (const declaration of declarations) {
     const [rawKey, rawValue] = declaration.split(":");
     if (!rawKey || rawValue === undefined) {
       continue;
     }
-    if (rawKey.trim().toLowerCase() === "fill") {
+    if (rawKey.trim().toLowerCase() === property.toLowerCase()) {
       return rawValue.trim();
     }
   }
   return null;
 }
 
-function setStyleFillValue(style: string, fillValue: string): string {
+function setStylePropertyValue(
+  style: string,
+  property: string,
+  value: string,
+): string {
   const declarations = style
     .split(";")
     .map((declaration) => declaration.trim())
@@ -276,19 +280,42 @@ function setStyleFillValue(style: string, fillValue: string): string {
   let didReplace = false;
   const nextDeclarations = declarations.map((declaration) => {
     const [rawKey] = declaration.split(":");
-    if (!rawKey || rawKey.trim().toLowerCase() !== "fill") {
+    if (!rawKey || rawKey.trim().toLowerCase() !== property.toLowerCase()) {
       return declaration;
     }
 
     didReplace = true;
-    return `fill:${fillValue}`;
+    return `${property}:${value}`;
   });
 
   if (!didReplace) {
-    nextDeclarations.push(`fill:${fillValue}`);
+    nextDeclarations.push(`${property}:${value}`);
   }
 
   return nextDeclarations.join("; ");
+}
+
+function removeStyleProperty(style: string, property: string): string {
+  return style
+    .split(";")
+    .map((declaration) => declaration.trim())
+    .filter((declaration) => declaration.length > 0)
+    .filter((declaration) => {
+      const [rawKey] = declaration.split(":");
+      return (
+        rawKey &&
+        rawKey.trim().toLowerCase() !== property.toLowerCase()
+      );
+    })
+    .join("; ");
+}
+
+function getStyleFillValue(style: string): string | null {
+  return getStylePropertyValue(style, "fill");
+}
+
+function setStyleFillValue(style: string, fillValue: string): string {
+  return setStylePropertyValue(style, "fill", fillValue);
 }
 
 function applyFillWithDomParser(markup: string, fillValue: string): string {
@@ -324,23 +351,121 @@ function applyFillWithDomParser(markup: string, fillValue: string): string {
     .join("");
 }
 
+function getStrokePattern(
+  strokeStyle: ForegroundStyleState["strokeStyle"],
+  strokeWidth: number,
+): { dashArray: string | null; lineCap: string | null } {
+  if (strokeStyle === "dashed") {
+    return {
+      dashArray: `${strokeWidth * 4},${strokeWidth * 2}`,
+      lineCap: null,
+    };
+  }
+
+  if (strokeStyle === "dotted") {
+    return {
+      dashArray: `${strokeWidth},${strokeWidth}`,
+      lineCap: "round",
+    };
+  }
+
+  if (strokeStyle === "double") {
+    return {
+      dashArray: `${strokeWidth * 2},${strokeWidth * 0.5}`,
+      lineCap: "butt",
+    };
+  }
+
+  return {
+    dashArray: null,
+    lineCap: null,
+  };
+}
+
+function applyStrokeWithDomParser(
+  markup: string,
+  foreground: ForegroundStyleState,
+): string {
+  const strokeWidth = Math.max(0, foreground.frameWidth ?? 0);
+  if (strokeWidth <= 0 || foreground.strokeStyle === "none") {
+    return markup;
+  }
+
+  const parser = new DOMParser();
+  const serializer = new XMLSerializer();
+  const doc = parser.parseFromString(
+    `<svg xmlns="http://www.w3.org/2000/svg">${markup}</svg>`,
+    "image/svg+xml",
+  );
+
+  const strokeColor = foreground.frameColor || "#000000";
+  const strokePattern = getStrokePattern(foreground.strokeStyle, strokeWidth);
+  const targets = Array.from(doc.querySelectorAll(BREAKOUT_ELEMENT_SELECTOR));
+  for (const node of targets) {
+    const styleAttr = (node.getAttribute("style") ?? "").trim();
+    if (styleAttr) {
+      let nextStyle = setStylePropertyValue(styleAttr, "stroke", strokeColor);
+      nextStyle = setStylePropertyValue(
+        nextStyle,
+        "stroke-width",
+        String(strokeWidth),
+      );
+
+      nextStyle = strokePattern.dashArray
+        ? setStylePropertyValue(
+            nextStyle,
+            "stroke-dasharray",
+            strokePattern.dashArray,
+          )
+        : removeStyleProperty(nextStyle, "stroke-dasharray");
+
+      nextStyle = strokePattern.lineCap
+        ? setStylePropertyValue(nextStyle, "stroke-linecap", strokePattern.lineCap)
+        : removeStyleProperty(nextStyle, "stroke-linecap");
+
+      node.setAttribute("style", nextStyle);
+      continue;
+    }
+
+    node.setAttribute("stroke", strokeColor);
+    node.setAttribute("stroke-width", String(strokeWidth));
+
+    if (strokePattern.dashArray) {
+      node.setAttribute("stroke-dasharray", strokePattern.dashArray);
+    } else {
+      node.removeAttribute("stroke-dasharray");
+    }
+
+    if (strokePattern.lineCap) {
+      node.setAttribute("stroke-linecap", strokePattern.lineCap);
+    } else {
+      node.removeAttribute("stroke-linecap");
+    }
+  }
+
+  return Array.from(doc.documentElement.childNodes)
+    .map((node) => serializer.serializeToString(node))
+    .join("");
+}
+
 function applyForegroundPaintToMarkup(
   markup: string,
   foreground: ForegroundStyleState,
   defsOut: string[],
   nextGradientId: () => string,
 ): string {
+  let fillApplied = markup;
   if (foreground.type === "flat") {
-    return applyFillWithDomParser(markup, foreground.flatColor);
+    fillApplied = applyFillWithDomParser(markup, foreground.flatColor);
+  } else if (foreground.type === "none") {
+    fillApplied = applyFillWithDomParser(markup, "none");
+  } else {
+    const gradId = nextGradientId();
+    defsOut.push(buildForegroundGradientDef(foreground, gradId));
+    fillApplied = applyFillWithDomParser(markup, `url(#${gradId})`);
   }
 
-  if (foreground.type === "none") {
-    return applyFillWithDomParser(markup, "none");
-  }
-
-  const gradId = nextGradientId();
-  defsOut.push(buildForegroundGradientDef(foreground, gradId));
-  return applyFillWithDomParser(markup, `url(#${gradId})`);
+  return applyStrokeWithDomParser(fillApplied, foreground);
 }
 
 function clampBlendOpacity(value: number): number {
