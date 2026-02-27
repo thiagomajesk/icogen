@@ -518,7 +518,7 @@ export function SelectedIconStylePanel({
                       style={{ flexShrink: 0 }}
                     />
                     <Text size="sm" c="dimmed">
-                      Break the SVG to customize paths individually
+                      Break apart the SVG to customize paths individually
                     </Text>
                   </Group>
 
