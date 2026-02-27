@@ -194,6 +194,7 @@ export function SelectedIconStylePanel({
   const isBackgroundDefault = isDefaultBackgroundStyle(background);
   const isForegroundDefault = isDefaultForegroundStyle(foreground);
   const isBackgroundStrokeDisabled = background.strokeStyle === "none";
+  const isForegroundStrokeDisabled = foreground.strokeStyle === "none";
   const backgroundShadowModeValue = toShadowModeControlValue(background);
   const foregroundShadowModeValue = toShadowModeControlValue(foreground);
   const backgroundTypeControlValue: Exclude<BackgroundStyleState["type"], "none"> =
@@ -666,6 +667,52 @@ export function SelectedIconStylePanel({
                       />
                     </>
                   ) : null}
+
+                  <Divider />
+                  <Select
+                    label="Stroke"
+                    variant="filled"
+                    data={strokeOptions}
+                    value={foreground.strokeStyle}
+                    allowDeselect={false}
+                    onChange={(value) =>
+                      onForegroundChange({
+                        ...foreground,
+                        strokeStyle: (value ?? "none") as ForegroundStyleState["strokeStyle"],
+                      })
+                    }
+                  />
+
+                  <NumberInput
+                    label="Stroke Width"
+                    variant="filled"
+                    min={0}
+                    max={64}
+                    step={1}
+                    disabled={isForegroundStrokeDisabled}
+                    value={foreground.frameWidth}
+                    onChange={(value) =>
+                      onForegroundChange({
+                        ...foreground,
+                        frameWidth: Math.max(0, toNumber(value, foreground.frameWidth)),
+                      })
+                    }
+                  />
+
+                  <ColorInput
+                    label="Stroke Color"
+                    variant="filled"
+                    format="hexa"
+                    eyeDropperIcon={eyeDropperIcon}
+                    disabled={isForegroundStrokeDisabled}
+                    value={foreground.frameColor}
+                    onChange={(value) =>
+                      onForegroundChange({
+                        ...foreground,
+                        frameColor: value,
+                      })
+                    }
+                  />
 
                   <Divider />
                   <Text size="sm" fw={500}>
