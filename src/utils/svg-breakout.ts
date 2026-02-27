@@ -476,8 +476,112 @@ function clampBlendOpacity(value: number): number {
   return Math.max(0, Math.min(1, value));
 }
 
-function buildPieceStyleAttribute(style: ForegroundStyleState): string {
+function buildOuterShadowFilterValue(
+  style: ForegroundStyleState,
+): string | null {
+  if (!style.shadowEnabled || (style.shadowMode ?? "outer") !== "outer") {
+    return null;
+  }
+
+  const blur = Math.max(0, style.shadowBlur || 0);
+  const offsetX = style.shadowOffsetX || 0;
+  const offsetY = style.shadowOffsetY || 0;
+  const color = style.shadowColor || "rgba(0, 0, 0, 0.7)";
+
+  if (blur === 0 && offsetX === 0 && offsetY === 0) {
+    return null;
+  }
+
+  return `drop-shadow(${offsetX}px ${offsetY}px ${blur}px ${color})`;
+}
+
+function parseHexColor(
+  input: string,
+): { rgb: string; alpha: number } | null {
+  const value = input.trim();
+  if (!value.startsWith("#")) {
+    return null;
+  }
+
+  const hex = value.slice(1);
+  if (![3, 4, 6, 8].includes(hex.length)) {
+    return null;
+  }
+
+  if (!/^[0-9a-fA-F]+$/.test(hex)) {
+    return null;
+  }
+
+  const expand = (ch: string) => `${ch}${ch}`;
+  const readByte = (pair: string) => Number.parseInt(pair, 16);
+
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  let a = 255;
+
+  if (hex.length === 3 || hex.length === 4) {
+    r = readByte(expand(hex[0]));
+    g = readByte(expand(hex[1]));
+    b = readByte(expand(hex[2]));
+    if (hex.length === 4) {
+      a = readByte(expand(hex[3]));
+    }
+  } else {
+    r = readByte(hex.slice(0, 2));
+    g = readByte(hex.slice(2, 4));
+    b = readByte(hex.slice(4, 6));
+    if (hex.length === 8) {
+      a = readByte(hex.slice(6, 8));
+    }
+  }
+
+  return { rgb: `rgb(${r},${g},${b})`, alpha: a / 255 };
+}
+
+function buildInnerShadowFilterDef(
+  id: string,
+  style: ForegroundStyleState,
+): string | null {
+  if (!style.shadowEnabled || (style.shadowMode ?? "outer") !== "inner") {
+    return null;
+  }
+
+  const blur = Math.max(0, style.shadowBlur || 0);
+  const dx = style.shadowOffsetX || 0;
+  const dy = style.shadowOffsetY || 0;
+  const rawColor = style.shadowColor || "#000000";
+  const parsed = parseHexColor(rawColor);
+  const floodColor = parsed?.rgb ?? rawColor;
+  const floodOpacity = parsed ? Math.max(0, Math.min(1, parsed.alpha)) : 1;
+
+  if (blur === 0 && dx === 0 && dy === 0) {
+    return null;
+  }
+
+  return [
+    `<filter id="${id}" x="-50%" y="-50%" width="200%" height="200%">`,
+    `  <feOffset dx="${dx}" dy="${dy}" in="SourceAlpha" result="offset" />`,
+    `  <feGaussianBlur in="offset" stdDeviation="${blur}" result="blur" />`,
+    `  <feComposite in="blur" in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="inner" />`,
+    `  <feFlood flood-color="${floodColor}" flood-opacity="${floodOpacity}" result="flood" />`,
+    `  <feComposite in="flood" in2="inner" operator="in" result="shadow" />`,
+    `  <feComposite in="shadow" in2="SourceGraphic" operator="over" />`,
+    `</filter>`,
+  ].join("");
+}
+
+function buildPiecePresentationAttributes(
+  style: ForegroundStyleState,
+  defsOut: string[],
+  nextInnerShadowId: () => string,
+): { styleAttr: string; filterAttr: string } {
   const declarations: string[] = [];
+  const outerShadow = buildOuterShadowFilterValue(style);
+  if (outerShadow) {
+    declarations.push(`filter:${outerShadow}`);
+  }
+
   const blendMode = style.blendMode ?? "normal";
   if (blendMode !== "normal") {
     declarations.push(`mix-blend-mode:${blendMode}`);
@@ -488,11 +592,24 @@ function buildPieceStyleAttribute(style: ForegroundStyleState): string {
     declarations.push(`opacity:${blendOpacity}`);
   }
 
-  if (declarations.length === 0) {
-    return "";
+  const styleAttr =
+    declarations.length > 0 ? ` style="${declarations.join(";")};"` : "";
+
+  if (!style.shadowEnabled || (style.shadowMode ?? "outer") !== "inner") {
+    return { styleAttr, filterAttr: "" };
   }
 
-  return ` style="${declarations.join(";")};"`;
+  const innerShadowId = nextInnerShadowId();
+  const innerShadowDef = buildInnerShadowFilterDef(innerShadowId, style);
+  if (!innerShadowDef) {
+    return { styleAttr, filterAttr: "" };
+  }
+
+  defsOut.push(innerShadowDef);
+  return {
+    styleAttr,
+    filterAttr: ` filter="url(#${innerShadowId})"`,
+  };
 }
 
 function parseBreakoutPieces(inner: string): SvgPathPiece[] {
@@ -590,6 +707,11 @@ export function buildForegroundStyledSvg(
     gradientCounter += 1;
     return `fg-piece-gradient-${gradientCounter}`;
   };
+  let innerShadowCounter = 0;
+  const nextInnerShadowId = () => {
+    innerShadowCounter += 1;
+    return `fg-piece-inner-shadow-${innerShadowCounter}`;
+  };
   const staticPieces: string[] = [];
   let blinkingPieceMarkup: string | null = null;
 
@@ -602,18 +724,22 @@ export function buildForegroundStyledSvg(
       nextGradientId,
     );
     const transform = buildCenteredForegroundTransform(style);
-    const pieceStyle = buildPieceStyleAttribute(style);
+    const piecePresentation = buildPiecePresentationAttributes(
+      style,
+      defs,
+      nextInnerShadowId,
+    );
     const transformedMarkup = transform
       ? `<g transform="${transform}">${paintApplied}</g>`
       : paintApplied;
 
     if (blink?.pathId && blink.pathId === piece.id) {
-      blinkingPieceMarkup = `<g data-foreground-piece-id="${piece.id}" data-blink-token="${blink.token}"><animate attributeName="opacity" values="1;0.15;1;0.15;1" dur="0.75s" repeatCount="1" /><g${pieceStyle}>${transformedMarkup}</g></g>`;
+      blinkingPieceMarkup = `<g data-foreground-piece-id="${piece.id}" data-blink-token="${blink.token}"><animate attributeName="opacity" values="1;0.15;1;0.15;1" dur="0.75s" repeatCount="1" /><g${piecePresentation.filterAttr}${piecePresentation.styleAttr}>${transformedMarkup}</g></g>`;
       continue;
     }
 
     staticPieces.push(
-      `<g data-foreground-piece-id="${piece.id}"${pieceStyle}>${transformedMarkup}</g>`,
+      `<g data-foreground-piece-id="${piece.id}"${piecePresentation.filterAttr}${piecePresentation.styleAttr}>${transformedMarkup}</g>`,
     );
   }
 

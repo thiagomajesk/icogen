@@ -123,6 +123,12 @@ test("buildForegroundStyledSvg applies per-piece styles, gradients, and blink or
         gradientTo: "#f0f0f0",
         blendMode: "screen",
         blendOpacity: 0.4,
+        shadowEnabled: true,
+        shadowMode: "outer",
+        shadowColor: "#224466",
+        shadowBlur: 5,
+        shadowOffsetX: 3,
+        shadowOffsetY: -2,
         strokeStyle: "dashed",
         frameWidth: 2,
         frameColor: "#ff00ff",
@@ -130,6 +136,12 @@ test("buildForegroundStyledSvg applies per-piece styles, gradients, and blink or
       "piece-3": {
         ...defaultForeground,
         type: "none",
+        shadowEnabled: true,
+        shadowMode: "inner",
+        shadowColor: "#ff000080",
+        shadowBlur: 6,
+        shadowOffsetX: -1,
+        shadowOffsetY: 4,
       },
       "piece-4": {
         ...defaultForeground,
@@ -151,15 +163,20 @@ test("buildForegroundStyledSvg applies per-piece styles, gradients, and blink or
   assert.match(svg, /id="aikon-piece-hover-vignette"/);
   assert.match(svg, /id="existing"/);
   assert.match(svg, /id="fg-piece-gradient-1"/);
+  assert.match(svg, /id="fg-piece-inner-shadow-1"/);
   assert.match(svg, /data-foreground-piece-id="piece-1"/);
   assert.match(svg, /fill="#123456"/);
   assert.match(svg, /data-foreground-piece-id="piece-2" data-blink-token="42"/);
   assert.match(svg, /<animate attributeName="opacity"/);
-  assert.match(svg, /<g style="mix-blend-mode:screen;opacity:0.4;">/);
+  assert.match(
+    svg,
+    /<g style="filter:drop-shadow\(3px -2px 5px #224466\);mix-blend-mode:screen;opacity:0.4;">/,
+  );
   assert.match(svg, /fill:url\(#fg-piece-gradient-1\)/);
   assert.match(svg, /stroke:#ff00ff/);
   assert.match(svg, /stroke-width:2/);
   assert.match(svg, /stroke-dasharray:8,4/);
+  assert.match(svg, /data-foreground-piece-id="piece-3" filter="url\(#fg-piece-inner-shadow-1\)"/);
   assert.match(svg, /fill="#00ff00"/);
   assert.match(svg, /data-foreground-piece-id="piece-4"/);
   assert.match(
