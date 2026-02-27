@@ -3,6 +3,8 @@ import {
   isDefaultBackgroundStyle,
   isDefaultForegroundStyle,
 } from "./style-state";
+import { defaultBackground, defaultForeground } from "./constants";
+import { parseLocalJson, readLocalJson } from "../utils/local-storage";
 
 const ICON_HISTORY_KEY = "icon-history";
 const CURRENT_ICON_KEY = "current-icon";
@@ -35,21 +37,43 @@ function notifyIconAccessesUpdated(): void {
   window.dispatchEvent(new Event(ICON_ACCESSES_UPDATED_EVENT));
 }
 
+function normalizeSurfaceStyle<T extends object>(
+  style: T | null | undefined,
+  defaults: T,
+): T {
+  return {
+    ...defaults,
+    ...(style ?? {}),
+  };
+}
+
+function normalizeForegroundPathSettings(
+  foregroundPaths: ForegroundPathSettings | undefined,
+): ForegroundPathSettings | undefined {
+  if (!foregroundPaths) {
+    return undefined;
+  }
+
+  const pathStyles = Object.fromEntries(
+    Object.entries(foregroundPaths.pathStyles ?? {}).map(([pieceId, style]) => [
+      pieceId,
+      normalizeSurfaceStyle(style, defaultForeground),
+    ]),
+  );
+
+  return {
+    enabled: Boolean(foregroundPaths.enabled),
+    selectedPathId: foregroundPaths.selectedPathId ?? null,
+    pathStyles,
+  };
+}
+
 /**
  * Loads all remembered icon settings from localStorage.
  * Returns an empty object when there is no saved history yet.
  */
 export function loadIconHistory(): IconHistory {
-  try {
-    const historyJson = localStorage.getItem(ICON_HISTORY_KEY);
-    if (!historyJson) {
-      return {};
-    }
-    return JSON.parse(historyJson);
-  } catch (error) {
-    console.error("Failed to load icon history:", error);
-    return {};
-  }
+  return readLocalJson<IconHistory>(ICON_HISTORY_KEY, {}, "Failed to load icon history:");
 }
 
 /**
@@ -126,13 +150,24 @@ export function getCurrentIcon(): string | null {
  * Loads saved settings for a specific icon name.
  */
 export function loadIconSettings(iconName: string): IconSettings | null {
-  try {
-    const history = loadIconHistory();
-    return history[iconName] || null;
-  } catch (error) {
-    console.error("Failed to load icon settings:", error);
+  const history = loadIconHistory();
+  const settings = history[iconName];
+  if (!settings) {
     return null;
   }
+
+  const normalizedForegroundPaths = normalizeForegroundPathSettings(
+    settings.foregroundPaths,
+  );
+
+  return {
+    ...settings,
+    background: normalizeSurfaceStyle(settings.background, defaultBackground),
+    foreground: normalizeSurfaceStyle(settings.foreground, defaultForeground),
+    ...(settings.foregroundPaths
+      ? { foregroundPaths: normalizedForegroundPaths }
+      : {}),
+  };
 }
 
 /**
@@ -164,7 +199,11 @@ export function loadRecentIconAccesses(): string[] {
       return [];
     }
 
-    const parsed = JSON.parse(source);
+    const parsed = parseLocalJson<unknown[]>(
+      source,
+      [],
+      "Failed to load recent icon accesses:",
+    );
     if (!Array.isArray(parsed)) {
       return [];
     }

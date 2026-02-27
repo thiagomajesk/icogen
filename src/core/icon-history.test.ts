@@ -184,6 +184,92 @@ test("foreground path settings keep an icon entry even with default surface styl
   assert.deepEqual(restored?.foregroundPaths, foregroundPathSettings);
 });
 
+test("loadIconSettings normalizes legacy surface styles with missing shadow fields", () => {
+  localStorageMock.clear();
+
+  const legacyBackground = {
+    ...defaultBackground,
+    flatColor: "#123456",
+  } as Record<string, unknown>;
+  delete legacyBackground.shadowEnabled;
+  delete legacyBackground.shadowMode;
+  delete legacyBackground.shadowColor;
+  delete legacyBackground.shadowBlur;
+  delete legacyBackground.shadowOffsetX;
+  delete legacyBackground.shadowOffsetY;
+
+  const legacyForeground = {
+    ...defaultForeground,
+    flatColor: "#abcdef",
+  } as Record<string, unknown>;
+  delete legacyForeground.shadowEnabled;
+  delete legacyForeground.shadowMode;
+  delete legacyForeground.shadowColor;
+  delete legacyForeground.shadowBlur;
+  delete legacyForeground.shadowOffsetX;
+  delete legacyForeground.shadowOffsetY;
+
+  localStorageMock.setItem(
+    "icon-history",
+    JSON.stringify({
+      legacy: {
+        background: legacyBackground,
+        foreground: legacyForeground,
+      },
+    }),
+  );
+
+  const restored = loadIconSettings("legacy");
+  assert.notEqual(restored, null);
+  assert.equal(restored?.background.flatColor, "#123456");
+  assert.equal(restored?.foreground.flatColor, "#abcdef");
+  assert.equal(restored?.background.shadowEnabled, false);
+  assert.equal(restored?.background.shadowMode, "outer");
+  assert.equal(restored?.foreground.shadowEnabled, false);
+  assert.equal(restored?.foreground.shadowMode, "outer");
+});
+
+test("loadIconSettings normalizes legacy foreground path styles", () => {
+  localStorageMock.clear();
+
+  const legacyPathStyle = {
+    ...defaultForeground,
+    flatColor: "#33aaee",
+  } as Record<string, unknown>;
+  delete legacyPathStyle.shadowEnabled;
+  delete legacyPathStyle.shadowMode;
+  delete legacyPathStyle.shadowColor;
+  delete legacyPathStyle.shadowBlur;
+  delete legacyPathStyle.shadowOffsetX;
+  delete legacyPathStyle.shadowOffsetY;
+
+  localStorageMock.setItem(
+    "icon-history",
+    JSON.stringify({
+      legacy: {
+        background: defaultBackground,
+        foreground: defaultForeground,
+        foregroundPaths: {
+          enabled: true,
+          selectedPathId: "piece-9",
+          pathStyles: {
+            "piece-9": legacyPathStyle,
+          },
+        },
+      },
+    }),
+  );
+
+  const restored = loadIconSettings("legacy");
+  assert.notEqual(restored?.foregroundPaths, undefined);
+  assert.equal(restored?.foregroundPaths?.pathStyles["piece-9"]?.flatColor, "#33aaee");
+  assert.equal(
+    restored?.foregroundPaths?.pathStyles["piece-9"]?.shadowEnabled,
+    false,
+  );
+  assert.equal(restored?.foregroundPaths?.pathStyles["piece-9"]?.shadowMode, "outer");
+});
+
 test("recent icon accesses keep latest 100 unique entries", () => {
   localStorageMock.clear();
 
@@ -212,4 +298,85 @@ test("saving icon accesses dispatches update events", () => {
   windowMock.removeEventListener(ICON_ACCESSES_UPDATED_EVENT, listener);
 
   assert.equal(updateCount, 1);
+});
+
+test("loadRecentIconAccesses migrates legacy key to the new key", () => {
+  localStorageMock.clear();
+  localStorageMock.setItem(
+    "recent-icon-accesses",
+    JSON.stringify(["lorc/acid-blob.svg", 123, "cathelineau/boar.svg"]),
+  );
+
+  const recent = loadRecentIconAccesses();
+
+  assert.deepEqual(recent, ["lorc/acid-blob.svg", "cathelineau/boar.svg"]);
+  assert.equal(localStorageMock.getItem("recent-icon-accesses"), null);
+  assert.equal(
+    localStorageMock.getItem("recent-icons"),
+    JSON.stringify(["lorc/acid-blob.svg", "cathelineau/boar.svg"]),
+  );
+});
+
+test("loadRecentIconAccesses returns empty for invalid JSON payload shapes", () => {
+  localStorageMock.clear();
+  localStorageMock.setItem("recent-icons", JSON.stringify({ wrong: true }));
+  assert.deepEqual(loadRecentIconAccesses(), []);
+});
+
+test("saveRecentIconAccess ignores empty paths", () => {
+  localStorageMock.clear();
+
+  let updateCount = 0;
+  const listener = () => {
+    updateCount += 1;
+  };
+
+  windowMock.addEventListener(ICON_ACCESSES_UPDATED_EVENT, listener);
+  saveRecentIconAccess("");
+  windowMock.removeEventListener(ICON_ACCESSES_UPDATED_EVENT, listener);
+
+  assert.equal(updateCount, 0);
+  assert.deepEqual(loadRecentIconAccesses(), []);
+});
+
+test("icon history APIs return safe fallbacks when storage throws", () => {
+  localStorageMock.clear();
+
+  const originalGetItem = localStorageMock.getItem;
+  const originalSetItem = localStorageMock.setItem;
+  const originalRemoveItem = localStorageMock.removeItem;
+  const originalConsoleError = console.error;
+  const errors: unknown[] = [];
+
+  console.error = (...args: unknown[]) => {
+    errors.push(args);
+  };
+
+  localStorageMock.getItem = () => {
+    throw new Error("getItem failed");
+  };
+  localStorageMock.setItem = () => {
+    throw new Error("setItem failed");
+  };
+  localStorageMock.removeItem = () => {
+    throw new Error("removeItem failed");
+  };
+
+  assert.deepEqual(loadIconHistory(), {});
+  assert.equal(getCurrentIcon(), null);
+  assert.equal(loadIconSettings("any"), null);
+  assert.deepEqual(loadRecentIconAccesses(), []);
+
+  saveIconSettings("shield", settings);
+  saveRecentIconAccess("lorc/acid-blob.svg");
+  clearIconHistory();
+  setCurrentIcon("falcon");
+  setCurrentIcon(null);
+
+  localStorageMock.getItem = originalGetItem;
+  localStorageMock.setItem = originalSetItem;
+  localStorageMock.removeItem = originalRemoveItem;
+  console.error = originalConsoleError;
+
+  assert.equal(errors.length > 0, true);
 });
