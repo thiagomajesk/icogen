@@ -211,6 +211,22 @@ function buildSurfaceShadowFilter(
   return `drop-shadow(${offsetX}px ${offsetY}px ${blur}px ${color})`;
 }
 
+function clampSurfaceOpacity(value: number | null | undefined): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return 1;
+  }
+
+  return Math.max(0, Math.min(1, value));
+}
+
+function buildSurfaceBlendStyle(
+  surface: SurfaceStyleState | null | undefined,
+): string {
+  const blendMode = surface?.blendMode ?? "normal";
+  const opacity = clampSurfaceOpacity(surface?.blendOpacity);
+  return `mix-blend-mode:${blendMode};opacity:${opacity};`;
+}
+
 function parseHexColor(
   input: string,
 ): { rgb: string; alpha: number } | null {
@@ -691,6 +707,7 @@ export function buildCompositeSvg(
   );
 
   const filter = filterParts.join(" ");
+  const foregroundBlendStyle = buildSurfaceBlendStyle(foreground);
   const foregroundInnerShadowDef =
     foreground && foreground.shadowEnabled && foreground.shadowMode === "inner"
       ? buildInnerShadowFilterDef("fg-inner-shadow", foreground)
@@ -707,11 +724,11 @@ export function buildCompositeSvg(
     : `${baseMarkup}${overlayMarkup}`;
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" style="isolation:isolate;">
   <defs>${backgroundMarkup.defs}${defs.join("")}</defs>
   ${backgroundMarkup.shape}
   <g${wrapperTransform}${clipPathAttr}>
-    <g style="filter:${filter};">
+    <g style="filter:${filter};${foregroundBlendStyle}">
       ${layerMarkup}
     </g>
   </g>

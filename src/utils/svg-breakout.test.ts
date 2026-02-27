@@ -121,6 +121,8 @@ test("buildForegroundStyledSvg applies per-piece styles, gradients, and blink or
         gradientType: "vertical",
         gradientFrom: "#101010",
         gradientTo: "#f0f0f0",
+        blendMode: "screen",
+        blendOpacity: 0.4,
       },
       "piece-3": {
         ...defaultForeground,
@@ -147,6 +149,7 @@ test("buildForegroundStyledSvg applies per-piece styles, gradients, and blink or
   assert.match(svg, /fill="#123456"/);
   assert.match(svg, /data-foreground-piece-id="piece-2" data-blink-token="42"/);
   assert.match(svg, /<animate attributeName="opacity"/);
+  assert.match(svg, /<g style="mix-blend-mode:screen;opacity:0.4;">/);
   assert.match(svg, /fill:url\(#fg-piece-gradient-1\)/);
   assert.match(svg, /fill="#00ff00"/);
   assert.match(svg, /data-foreground-piece-id="piece-4"/);

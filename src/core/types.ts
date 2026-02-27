@@ -49,6 +49,14 @@ export interface EffectsState {
 }
 
 export type SurfaceShadowMode = "outer" | "inner";
+export type SurfaceBlendMode =
+  | "normal"
+  | "multiply"
+  | "screen"
+  | "overlay"
+  | "soft-light"
+  | "color"
+  | "luminosity";
 
 export type BackgroundType = "none" | "flat" | "gradient";
 export type GradientType =
@@ -104,6 +112,8 @@ export interface SurfaceStyleState {
   shadowBlur: number;
   shadowOffsetX: number;
   shadowOffsetY: number;
+  blendMode: SurfaceBlendMode;
+  blendOpacity: number;
 }
 
 export type BackgroundStyleState = SurfaceStyleState;

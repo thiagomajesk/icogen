@@ -80,6 +80,8 @@ export const defaultBackground: BackgroundStyleState = {
   shadowBlur: 0,
   shadowOffsetX: 0,
   shadowOffsetY: 0,
+  blendMode: "normal",
+  blendOpacity: 1,
 };
 
 export const defaultForeground: ForegroundStyleState = {
@@ -107,4 +109,6 @@ export const defaultForeground: ForegroundStyleState = {
   shadowBlur: 0,
   shadowOffsetX: 0,
   shadowOffsetY: 0,
+  blendMode: "normal",
+  blendOpacity: 1,
 };

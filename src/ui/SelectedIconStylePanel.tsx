@@ -86,6 +86,19 @@ const shadowModeOptions: Array<{ value: ShadowModeOptionValue; label: string }> 
   { value: "inner", label: "Inner" },
 ];
 
+const blendModeOptions: Array<{
+  value: ForegroundStyleState["blendMode"];
+  label: string;
+}> = [
+  { value: "normal", label: "Normal" },
+  { value: "multiply", label: "Multiply" },
+  { value: "screen", label: "Screen" },
+  { value: "overlay", label: "Overlay" },
+  { value: "soft-light", label: "Soft Light" },
+  { value: "color", label: "Color" },
+  { value: "luminosity", label: "Luminosity" },
+];
+
 type BackgroundShapeControlValue = BackgroundStyleState["shape"] | "none";
 
 const backgroundShapeOptions: Array<{
@@ -187,6 +200,9 @@ export function SelectedIconStylePanel({
     background.type === "none" ? "flat" : background.type;
   const backgroundShapeControlValue: BackgroundShapeControlValue =
     background.type === "none" ? "none" : background.shape;
+  const foregroundBlendOpacityPercent = Math.round(
+    (foreground.blendOpacity ?? 1) * 100,
+  );
 
   return (
     <Stack h="100%" gap="sm" style={{ minHeight: 0 }}>
@@ -874,6 +890,34 @@ export function SelectedIconStylePanel({
                       />
                     </Stack>
                   ) : null}
+
+                  <Divider />
+                  <Select
+                    label="Blend Mode"
+                    variant="filled"
+                    data={blendModeOptions}
+                    value={foreground.blendMode ?? "normal"}
+                    allowDeselect={false}
+                    onChange={(value) =>
+                      onForegroundChange({
+                        ...foreground,
+                        blendMode:
+                          (value ?? "normal") as ForegroundStyleState["blendMode"],
+                      })
+                    }
+                  />
+                  <LabeledSlider
+                    label="Opacity"
+                    value={foregroundBlendOpacityPercent}
+                    min={0}
+                    max={100}
+                    onChange={(value) =>
+                      onForegroundChange({
+                        ...foreground,
+                        blendOpacity: value / 100,
+                      })
+                    }
+                  />
 
                   <Checkbox
                     checked={foreground.clipToBackground}

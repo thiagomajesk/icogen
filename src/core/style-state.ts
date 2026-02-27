@@ -26,6 +26,8 @@ const SURFACE_STYLE_KEYS: Array<keyof SurfaceStyleState> = [
   "shadowBlur",
   "shadowOffsetX",
   "shadowOffsetY",
+  "blendMode",
+  "blendOpacity",
 ];
 
 export function areSurfaceStylesEqual(

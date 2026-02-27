@@ -468,6 +468,33 @@ test("buildCompositeSvg composes foreground inner shadow with CSS filter chain",
   assert.match(composite, /<g filter="url\(#fg-inner-shadow\)">/);
 });
 
+test("buildCompositeSvg applies foreground blend mode and opacity", () => {
+  const base = {
+    ...defaultBaseLayer,
+    path: "blend.svg",
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="#000" d="M40 40H472V472H40z"/></svg>`,
+  };
+
+  const composite = buildCompositeSvg(
+    base,
+    defaultOverlayLayer,
+    defaultEffects,
+    defaultAnimation,
+    defaultBackground,
+    {
+      ...defaultForeground,
+      blendMode: "multiply",
+      blendOpacity: 0.35,
+    },
+    new Map(),
+    null,
+  );
+
+  assert.match(composite, /<svg[^>]*style="isolation:isolate;"/);
+  assert.match(composite, /mix-blend-mode:multiply;/);
+  assert.match(composite, /opacity:0.35;/);
+});
+
 test("buildCompositeSvg applies background shadow modes", () => {
   const outer = buildCompositeSvg(
     defaultBaseLayer,

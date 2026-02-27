@@ -343,6 +343,33 @@ function applyForegroundPaintToMarkup(
   return applyFillWithDomParser(markup, `url(#${gradId})`);
 }
 
+function clampBlendOpacity(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 1;
+  }
+
+  return Math.max(0, Math.min(1, value));
+}
+
+function buildPieceStyleAttribute(style: ForegroundStyleState): string {
+  const declarations: string[] = [];
+  const blendMode = style.blendMode ?? "normal";
+  if (blendMode !== "normal") {
+    declarations.push(`mix-blend-mode:${blendMode}`);
+  }
+
+  const blendOpacity = clampBlendOpacity(style.blendOpacity ?? 1);
+  if (blendOpacity !== 1) {
+    declarations.push(`opacity:${blendOpacity}`);
+  }
+
+  if (declarations.length === 0) {
+    return "";
+  }
+
+  return ` style="${declarations.join(";")};"`;
+}
+
 function parseBreakoutPieces(inner: string): SvgPathPiece[] {
   const parser = new DOMParser();
   const serializer = new XMLSerializer();
@@ -450,17 +477,18 @@ export function buildForegroundStyledSvg(
       nextGradientId,
     );
     const transform = buildCenteredForegroundTransform(style);
+    const pieceStyle = buildPieceStyleAttribute(style);
     const transformedMarkup = transform
       ? `<g transform="${transform}">${paintApplied}</g>`
       : paintApplied;
 
     if (blink?.pathId && blink.pathId === piece.id) {
-      blinkingPieceMarkup = `<g data-foreground-piece-id="${piece.id}" data-blink-token="${blink.token}"><animate attributeName="opacity" values="1;0.15;1;0.15;1" dur="0.75s" repeatCount="1" />${transformedMarkup}</g>`;
+      blinkingPieceMarkup = `<g data-foreground-piece-id="${piece.id}" data-blink-token="${blink.token}"><animate attributeName="opacity" values="1;0.15;1;0.15;1" dur="0.75s" repeatCount="1" /><g${pieceStyle}>${transformedMarkup}</g></g>`;
       continue;
     }
 
     staticPieces.push(
-      `<g data-foreground-piece-id="${piece.id}">${transformedMarkup}</g>`,
+      `<g data-foreground-piece-id="${piece.id}"${pieceStyle}>${transformedMarkup}</g>`,
     );
   }
 
