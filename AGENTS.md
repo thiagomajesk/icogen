@@ -13,6 +13,7 @@
 - Before non-trivial work, if you have assumptions, ask for confirmation before proceeding
 - When there is a contradiction or missing information, state the confusion and wait for resolution
 - Push back on incorrect, risky, or poorly-scoped instructions and propose safer or simpler alternatives
+- Never utilize of clever hacks or keep abstractions around just because of "compatibility". Instead, prefer to create an updated mental model and adjust the implementation to better fit the use cases we need to support. When in doubt, prioritize planning and confirming before proceeding with changes.
 
 ## Tasks
 
