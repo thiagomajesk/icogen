@@ -74,6 +74,12 @@ export const defaultBackground: BackgroundStyleState = {
   skewX: 0,
   skewY: 0,
   clipToBackground: false,
+  shadowEnabled: false,
+  shadowMode: "outer",
+  shadowColor: "#000000",
+  shadowBlur: 0,
+  shadowOffsetX: 0,
+  shadowOffsetY: 0,
 };
 
 export const defaultForeground: ForegroundStyleState = {
@@ -95,4 +101,10 @@ export const defaultForeground: ForegroundStyleState = {
   skewX: 0,
   skewY: 0,
   clipToBackground: false,
+  shadowEnabled: false,
+  shadowMode: "outer",
+  shadowColor: "#000000",
+  shadowBlur: 0,
+  shadowOffsetX: 0,
+  shadowOffsetY: 0,
 };

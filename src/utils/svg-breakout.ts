@@ -1,4 +1,9 @@
 import type { ForegroundStyleState } from "../core/types";
+import {
+  buildCenteredForegroundTransform,
+  buildForegroundGradientDef,
+  isAutoColorFill,
+} from "./foreground-style";
 import { parseSvg, wrapWithParentTransforms } from "./svg";
 
 export interface SvgPathPiece {
@@ -248,25 +253,6 @@ export function splitPathDataOnMoveTo(pathData: string): string[] {
   return chunks.length > 0 ? chunks : [trimmed];
 }
 
-function normalizeFillColor(fill: string): string {
-  return fill.trim().toLowerCase().replace(/\s+/g, "");
-}
-
-function isAutoColorFill(fill: string): boolean {
-  const normalized = normalizeFillColor(fill);
-  return (
-    normalized === "" ||
-    normalized === "#000" ||
-    normalized === "#000000" ||
-    normalized === "black" ||
-    normalized === "rgb(0,0,0)" ||
-    normalized === "#fff" ||
-    normalized === "#ffffff" ||
-    normalized === "white" ||
-    normalized === "rgb(255,255,255)"
-  );
-}
-
 function getStyleFillValue(style: string): string | null {
   const declarations = style.split(";");
   for (const declaration of declarations) {
@@ -338,46 +324,6 @@ function applyFillWithDomParser(markup: string, fillValue: string): string {
     .join("");
 }
 
-function buildForegroundStyleTransform(foreground: ForegroundStyleState): string {
-  const fgScale = foreground.frameScale / 100;
-  const flipXScale = foreground.flipX ? -1 : 1;
-  const flipYScale = foreground.flipY ? -1 : 1;
-  const combinedScale = fgScale * flipXScale;
-  const combinedScaleY = fgScale * flipYScale;
-
-  let operations = "";
-  let hasTransform = false;
-  if (foreground.positionX !== 0 || foreground.positionY !== 0) {
-    const scaledPosX = (foreground.positionX / 100) * 256;
-    const scaledPosY = (foreground.positionY / 100) * 256;
-    operations += ` translate(${scaledPosX} ${scaledPosY})`;
-    hasTransform = true;
-  }
-
-  if (foreground.frameRotate !== 0) {
-    operations += ` rotate(${foreground.frameRotate})`;
-    hasTransform = true;
-  }
-  if (combinedScale !== 1 || combinedScaleY !== 1) {
-    operations += ` scale(${combinedScale} ${combinedScaleY})`;
-    hasTransform = true;
-  }
-  if (foreground.skewX !== 0) {
-    operations += ` skewX(${foreground.skewX})`;
-    hasTransform = true;
-  }
-  if (foreground.skewY !== 0) {
-    operations += ` skewY(${foreground.skewY})`;
-    hasTransform = true;
-  }
-
-  if (!hasTransform) {
-    return "";
-  }
-
-  return `translate(256 256)${operations} translate(-256 -256)`;
-}
-
 function applyForegroundPaintToMarkup(
   markup: string,
   foreground: ForegroundStyleState,
@@ -393,14 +339,7 @@ function applyForegroundPaintToMarkup(
   }
 
   const gradId = nextGradientId();
-  const gradientConfig = {
-    radial: `<radialGradient id="${gradId}" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="${foreground.gradientFrom}" /><stop offset="100%" stop-color="${foreground.gradientTo}" /></radialGradient>`,
-    horizontal: `<linearGradient id="${gradId}" x1="0%" y1="50%" x2="100%" y2="50%"><stop offset="0%" stop-color="${foreground.gradientFrom}" /><stop offset="100%" stop-color="${foreground.gradientTo}" /></linearGradient>`,
-    vertical: `<linearGradient id="${gradId}" x1="50%" y1="0%" x2="50%" y2="100%"><stop offset="0%" stop-color="${foreground.gradientFrom}" /><stop offset="100%" stop-color="${foreground.gradientTo}" /></linearGradient>`,
-    "diagonal-forward": `<linearGradient id="${gradId}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${foreground.gradientFrom}" /><stop offset="100%" stop-color="${foreground.gradientTo}" /></linearGradient>`,
-    "diagonal-backward": `<linearGradient id="${gradId}" x1="100%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="${foreground.gradientFrom}" /><stop offset="100%" stop-color="${foreground.gradientTo}" /></linearGradient>`,
-  };
-  defsOut.push(gradientConfig[foreground.gradientType]);
+  defsOut.push(buildForegroundGradientDef(foreground, gradId));
   return applyFillWithDomParser(markup, `url(#${gradId})`);
 }
 
@@ -510,7 +449,7 @@ export function buildForegroundStyledSvg(
       defs,
       nextGradientId,
     );
-    const transform = buildForegroundStyleTransform(style);
+    const transform = buildCenteredForegroundTransform(style);
     const transformedMarkup = transform
       ? `<g transform="${transform}">${paintApplied}</g>`
       : paintApplied;

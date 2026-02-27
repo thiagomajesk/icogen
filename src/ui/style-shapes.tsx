@@ -6,16 +6,16 @@ export interface StyleShapeOption {
 }
 
 export const STYLE_SHAPE_OPTIONS: StyleShapeOption[] = [
-  { value: "circle", label: "circle" },
-  { value: "triangle", label: "triangle" },
-  { value: "square", label: "square" },
-  { value: "square-alt", label: "square-alt" },
-  { value: "rounded-square", label: "rounded-square" },
-  { value: "star5", label: "star5" },
-  { value: "star5-alt", label: "star5-alt" },
-  { value: "star6", label: "star6" },
-  { value: "star6-alt", label: "star6-alt" },
-  { value: "star7", label: "star7" },
+  { value: "circle", label: "Circle" },
+  { value: "triangle", label: "Triangle" },
+  { value: "square", label: "Square" },
+  { value: "square-alt", label: "Square Alt" },
+  { value: "rounded-square", label: "Rounded Square" },
+  { value: "star5", label: "Star 5" },
+  { value: "star5-alt", label: "Star 5 Alt" },
+  { value: "star6", label: "Star 6" },
+  { value: "star6-alt", label: "Star 6 Alt" },
+  { value: "star7", label: "Star 7" },
 ];
 
 interface StyleShapeIconProps {

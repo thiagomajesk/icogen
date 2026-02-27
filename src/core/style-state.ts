@@ -20,6 +20,12 @@ const SURFACE_STYLE_KEYS: Array<keyof SurfaceStyleState> = [
   "skewX",
   "skewY",
   "clipToBackground",
+  "shadowEnabled",
+  "shadowMode",
+  "shadowColor",
+  "shadowBlur",
+  "shadowOffsetX",
+  "shadowOffsetY",
 ];
 
 export function areSurfaceStylesEqual(

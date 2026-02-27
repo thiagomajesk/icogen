@@ -48,6 +48,8 @@ export interface EffectsState {
   shadowColor: string;
 }
 
+export type SurfaceShadowMode = "outer" | "inner";
+
 export type BackgroundType = "none" | "flat" | "gradient";
 export type GradientType =
   | "radial"
@@ -96,6 +98,12 @@ export interface SurfaceStyleState {
   skewX: number;
   skewY: number;
   clipToBackground: boolean;
+  shadowEnabled: boolean;
+  shadowMode: SurfaceShadowMode;
+  shadowColor: string;
+  shadowBlur: number;
+  shadowOffsetX: number;
+  shadowOffsetY: number;
 }
 
 export type BackgroundStyleState = SurfaceStyleState;

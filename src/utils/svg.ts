@@ -6,7 +6,13 @@ import {
   LayerState,
   ParsedSvg,
   PreviewTransform,
+  type SurfaceStyleState,
 } from "../core/types";
+import {
+  buildForegroundGradientDef,
+  buildForegroundTransformOperations,
+  replaceAutoFillAttributes,
+} from "./foreground-style";
 
 export function svgToDataUri(svg: string): string {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
@@ -186,6 +192,102 @@ export function wrapWithParentTransforms(
   return wrapped;
 }
 
+function buildSurfaceShadowFilter(
+  surface: SurfaceStyleState | null | undefined,
+): string | null {
+  if (!surface?.shadowEnabled || (surface.shadowMode ?? "outer") !== "outer") {
+    return null;
+  }
+
+  const blur = Math.max(0, surface.shadowBlur || 0);
+  const offsetX = surface.shadowOffsetX || 0;
+  const offsetY = surface.shadowOffsetY || 0;
+  const color = surface.shadowColor || "rgba(0, 0, 0, 0.7)";
+
+  if (blur === 0 && offsetX === 0 && offsetY === 0) {
+    return null;
+  }
+
+  return `drop-shadow(${offsetX}px ${offsetY}px ${blur}px ${color})`;
+}
+
+function parseHexColor(
+  input: string,
+): { rgb: string; alpha: number } | null {
+  const value = input.trim();
+  if (!value.startsWith("#")) {
+    return null;
+  }
+
+  const hex = value.slice(1);
+  if (![3, 4, 6, 8].includes(hex.length)) {
+    return null;
+  }
+
+  const isValid = /^[0-9a-fA-F]+$/.test(hex);
+  if (!isValid) {
+    return null;
+  }
+
+  const expand = (ch: string) => `${ch}${ch}`;
+  const readByte = (pair: string) => Number.parseInt(pair, 16);
+
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  let a = 255;
+
+  if (hex.length === 3 || hex.length === 4) {
+    r = readByte(expand(hex[0]));
+    g = readByte(expand(hex[1]));
+    b = readByte(expand(hex[2]));
+    if (hex.length === 4) {
+      a = readByte(expand(hex[3]));
+    }
+  } else {
+    r = readByte(hex.slice(0, 2));
+    g = readByte(hex.slice(2, 4));
+    b = readByte(hex.slice(4, 6));
+    if (hex.length === 8) {
+      a = readByte(hex.slice(6, 8));
+    }
+  }
+
+  return { rgb: `rgb(${r},${g},${b})`, alpha: a / 255 };
+}
+
+function buildInnerShadowFilterDef(
+  id: string,
+  surface: SurfaceStyleState,
+): string | null {
+  if (!surface.shadowEnabled || (surface.shadowMode ?? "outer") !== "inner") {
+    return null;
+  }
+
+  const blur = Math.max(0, surface.shadowBlur || 0);
+  const dx = surface.shadowOffsetX || 0;
+  const dy = surface.shadowOffsetY || 0;
+  const rawColor = surface.shadowColor || "#000000";
+  const parsed = parseHexColor(rawColor);
+  const floodColor = parsed?.rgb ?? rawColor;
+  const floodOpacity = parsed ? Math.max(0, Math.min(1, parsed.alpha)) : 1;
+
+  if (blur === 0 && dx === 0 && dy === 0) {
+    return null;
+  }
+
+  return [
+    `<filter id="${id}" x="-50%" y="-50%" width="200%" height="200%">`,
+    `  <feOffset dx="${dx}" dy="${dy}" in="SourceAlpha" result="offset" />`,
+    `  <feGaussianBlur in="offset" stdDeviation="${blur}" result="blur" />`,
+    `  <feComposite in="blur" in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="inner" />`,
+    `  <feFlood flood-color="${floodColor}" flood-opacity="${floodOpacity}" result="flood" />`,
+    `  <feComposite in="flood" in2="inner" operator="in" result="shadow" />`,
+    `  <feComposite in="shadow" in2="SourceGraphic" operator="over" />`,
+    `</filter>`,
+  ].join("");
+}
+
 function buildLayerMarkup(
   layer: LayerState,
   parsedCache: Map<string, ParsedSvg>,
@@ -199,66 +301,28 @@ function buildLayerMarkup(
   }
 
   const parsed = parseSvg(layer.svg, parsedCache);
-  
+
   // Build base transform
   let transform = `translate(256 256) translate(${layer.x} ${layer.y}) rotate(${layer.rotate}) scale(${layer.scale})`;
-  
+
   // Apply foreground transformations if present
   if (foreground) {
-    const fgScale = (foreground.frameScale / 100);
-    const flipXScale = foreground.flipX ? -1 : 1;
-    const flipYScale = foreground.flipY ? -1 : 1;
-    const combinedScale = fgScale * flipXScale;
-    const combinedScaleY = fgScale * flipYScale;
-    
-    // Add foreground position (scale from percentage to pixels where 100% = center touches edge)
-    if (foreground.positionX !== 0 || foreground.positionY !== 0) {
-      const scaledPosX = (foreground.positionX / 100) * 256;
-      const scaledPosY = (foreground.positionY / 100) * 256;
-      transform += ` translate(${scaledPosX} ${scaledPosY})`;
-    }
-    
-    // Add foreground rotation and scale/flip
-    if (foreground.frameRotate !== 0) {
-      transform += ` rotate(${foreground.frameRotate})`;
-    }
-    if (combinedScale !== 1 || combinedScaleY !== 1) {
-      transform += ` scale(${combinedScale} ${combinedScaleY})`;
-    }
-    
-    // Add foreground skew
-    if (foreground.skewX !== 0) {
-      transform += ` skewX(${foreground.skewX})`;
-    }
-    if (foreground.skewY !== 0) {
-      transform += ` skewY(${foreground.skewY})`;
-    }
+    transform += buildForegroundTransformOperations(foreground);
   }
-  
+
   transform += ` translate(-256 -256)`;
-  
+
   let inner = parsed.inner;
 
   if (foreground) {
-    // Only replace fills that are black/default
-      // Replace all solid fills (black, white, and empty) with the foreground color/gradient
-      // Covers: #000, #000000, black, rgb(0,0,0), #fff, #ffffff, white, rgb(255,255,255), and empty
-      const fillRegex = /fill=("|')((#000|#000000|black|rgb\(0,0,0\)|#fff|#ffffff|white|rgb\(255, ?255, ?255\)|))("|')/gi;
-      if (foreground.type === "flat") {
-        inner = inner.replace(fillRegex, `fill="${foreground.flatColor}"`);
-      } else if (foreground.type === "gradient") {
-        const gradId = nextGradientId();
-        const gradientConfig = {
-          radial: `<radialGradient id="${gradId}" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="${foreground.gradientFrom}" /><stop offset="100%" stop-color="${foreground.gradientTo}" /></radialGradient>`,
-          horizontal: `<linearGradient id="${gradId}" x1="0%" y1="50%" x2="100%" y2="50%"><stop offset="0%" stop-color="${foreground.gradientFrom}" /><stop offset="100%" stop-color="${foreground.gradientTo}" /></linearGradient>`,
-          vertical: `<linearGradient id="${gradId}" x1="50%" y1="0%" x2="50%" y2="100%"><stop offset="0%" stop-color="${foreground.gradientFrom}" /><stop offset="100%" stop-color="${foreground.gradientTo}" /></linearGradient>`,
-          "diagonal-forward": `<linearGradient id="${gradId}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${foreground.gradientFrom}" /><stop offset="100%" stop-color="${foreground.gradientTo}" /></linearGradient>`,
-          "diagonal-backward": `<linearGradient id="${gradId}" x1="100%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="${foreground.gradientFrom}" /><stop offset="100%" stop-color="${foreground.gradientTo}" /></linearGradient>`,
-        };
-        defsOut.push(gradientConfig[foreground.gradientType]);
-        inner = inner.replace(fillRegex, `fill="url(#${gradId})"`);
-      } else if (foreground.type === "none") {
-        inner = inner.replace(fillRegex, `fill="none"`);
+    if (foreground.type === "flat") {
+      inner = replaceAutoFillAttributes(inner, foreground.flatColor);
+    } else if (foreground.type === "gradient") {
+      const gradId = nextGradientId();
+      defsOut.push(buildForegroundGradientDef(foreground, gradId));
+      inner = replaceAutoFillAttributes(inner, `url(#${gradId})`);
+    } else if (foreground.type === "none") {
+      inner = replaceAutoFillAttributes(inner, "none");
     }
   }
 
@@ -314,6 +378,7 @@ function buildShapeElement(
   strokeStyle: BackgroundStyleState["strokeStyle"],
   rotateDeg: number,
   scalePercent: number,
+  shadowFilter: string | null,
 ): string {
   const scale = Math.max(0, scalePercent) / 100;
   const needsTransform = rotateDeg !== 0 || scale !== 1;
@@ -345,7 +410,8 @@ function buildShapeElement(
     }
   }
   
-  const attrs = `fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"${strokeDasharray}${transform}`;
+  const style = shadowFilter ? ` style="filter:${shadowFilter};"` : "";
+  const attrs = `fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"${strokeDasharray}${transform}${style}`;
 
   if (shape === "circle") {
     return `<circle cx="256" cy="256" r="240" ${attrs} />`;
@@ -464,39 +530,72 @@ function buildBackgroundMarkup(background: BackgroundStyleState): {
     background.frameScale
   );
   const clipPath = `<clipPath id="bg-clip">${clipPathShape}</clipPath>`;
+  const backgroundShadowFilter = buildSurfaceShadowFilter(background);
+  const innerShadowFilterDef = buildInnerShadowFilterDef("bg-inner-shadow", background);
 
   if (background.type === "none") {
     if (!hasFrame) {
-      return { defs: clipPath, shape: "", clipPath };
+      const defs = innerShadowFilterDef ? clipPath + innerShadowFilterDef : clipPath;
+      return { defs, shape: "", clipPath };
+    }
+
+    let defs = clipPath;
+    if (innerShadowFilterDef) {
+      defs += innerShadowFilterDef;
+    }
+
+    let shape = buildShapeElement(
+      background.shape,
+      "none",
+      strokeColor,
+      strokeWidth,
+      strokeStyle,
+      background.frameRotate,
+      background.frameScale,
+      backgroundShadowFilter,
+    );
+
+    if (innerShadowFilterDef) {
+      shape = shape.replace(
+        /^<([a-z]+)/,
+        `<$1 filter="url(#bg-inner-shadow)"`,
+      );
     }
 
     return {
-      defs: clipPath,
-      shape: buildShapeElement(
-        background.shape,
-        "none",
-        strokeColor,
-        strokeWidth,
-        strokeStyle,
-        background.frameRotate,
-        background.frameScale,
-      ),
+      defs,
+      shape,
       clipPath,
     };
   }
 
   if (background.type === "flat") {
+    let defs = clipPath;
+    if (innerShadowFilterDef) {
+      defs += innerShadowFilterDef;
+    }
+
+    let shape = buildShapeElement(
+      background.shape,
+      background.flatColor,
+      strokeColor,
+      strokeWidth,
+      strokeStyle,
+      background.frameRotate,
+      background.frameScale,
+      backgroundShadowFilter,
+    );
+
+    if (innerShadowFilterDef) {
+      shape = shape.replace(
+        /^<([a-z]+)/,
+        `<$1 filter="url(#bg-inner-shadow)"`,
+      );
+    }
+
     return {
-      defs: clipPath,
-      shape: buildShapeElement(
-        background.shape,
-        background.flatColor,
-        strokeColor,
-        strokeWidth,
-        strokeStyle,
-        background.frameRotate,
-        background.frameScale,
-      ),
+      defs,
+      shape,
       clipPath,
     };
   }
@@ -506,17 +605,32 @@ function buildBackgroundMarkup(background: BackgroundStyleState): {
     ? `<radialGradient id="bg-gradient" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="${background.gradientFrom}" /><stop offset="100%" stop-color="${background.gradientTo}" /></radialGradient>`
     : `<linearGradient id="bg-gradient" x1="${config.x1}" y1="${config.y1}" x2="${config.x2}" y2="${config.y2}"><stop offset="0%" stop-color="${background.gradientFrom}" /><stop offset="100%" stop-color="${background.gradientTo}" /></linearGradient>`;
 
+  let defs = gradientDef + clipPath;
+  if (innerShadowFilterDef) {
+    defs += innerShadowFilterDef;
+  }
+
+  let shape = buildShapeElement(
+    background.shape,
+    "url(#bg-gradient)",
+    strokeColor,
+    strokeWidth,
+    strokeStyle,
+    background.frameRotate,
+    background.frameScale,
+    backgroundShadowFilter,
+  );
+
+  if (innerShadowFilterDef) {
+    shape = shape.replace(
+      /^<([a-z]+)/,
+      `<$1 filter="url(#bg-inner-shadow)"`,
+    );
+  }
+
   return {
-    defs: gradientDef + clipPath,
-    shape: buildShapeElement(
-      background.shape,
-      "url(#bg-gradient)",
-      strokeColor,
-      strokeWidth,
-      strokeStyle,
-      background.frameRotate,
-      background.frameScale,
-    ),
+    defs,
+    shape,
     clipPath,
   };
 }
@@ -557,19 +671,49 @@ export function buildCompositeSvg(
     animationProgress === null
       ? ""
       : ` transform="${buildAnimationTransform(animation, animationProgress)}"`;
-  const filter = `drop-shadow(${effects.shadowX}px ${effects.shadowY}px ${effects.shadowBlur}px ${effects.shadowColor}) blur(${effects.blur}px) hue-rotate(${effects.hueRotate}deg) saturate(${effects.saturate}%)`;
-  
+  const globalDropShadow =
+    effects.shadowBlur !== 0 || effects.shadowX !== 0 || effects.shadowY !== 0
+      ? `drop-shadow(${effects.shadowX}px ${effects.shadowY}px ${effects.shadowBlur}px ${effects.shadowColor})`
+      : null;
+  const foregroundShadowFilter = buildSurfaceShadowFilter(foreground);
+  const filterParts: string[] = [];
+
+  if (foregroundShadowFilter) {
+    filterParts.push(foregroundShadowFilter);
+  }
+  if (globalDropShadow) {
+    filterParts.push(globalDropShadow);
+  }
+  filterParts.push(
+    `blur(${effects.blur}px)`,
+    `hue-rotate(${effects.hueRotate}deg)`,
+    `saturate(${effects.saturate}%)`,
+  );
+
+  const filter = filterParts.join(" ");
+  const foregroundInnerShadowDef =
+    foreground && foreground.shadowEnabled && foreground.shadowMode === "inner"
+      ? buildInnerShadowFilterDef("fg-inner-shadow", foreground)
+      : null;
+  if (foregroundInnerShadowDef) {
+    defs.push(foregroundInnerShadowDef);
+  }
+
   const clipPathAttr = foreground?.clipToBackground
     ? ` clip-path="url(#bg-clip)"`
     : "";
+  const layerMarkup = foregroundInnerShadowDef
+    ? `<g filter="url(#fg-inner-shadow)">${baseMarkup}${overlayMarkup}</g>`
+    : `${baseMarkup}${overlayMarkup}`;
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>${backgroundMarkup.defs}${defs.join("")}</defs>
   ${backgroundMarkup.shape}
-  <g style="filter:${filter};"${wrapperTransform}${clipPathAttr}>
-    ${baseMarkup}
-    ${overlayMarkup}
+  <g${wrapperTransform}${clipPathAttr}>
+    <g style="filter:${filter};">
+      ${layerMarkup}
+    </g>
   </g>
 </svg>`.trim();
 }

@@ -21,6 +21,8 @@ import {
   IconColorPicker,
   IconFlipHorizontal,
   IconFlipVertical,
+  IconGitBranch,
+  IconInfoCircle,
   IconRotate2,
   IconRotateClockwise2,
   IconZoomIn,
@@ -49,7 +51,12 @@ interface SelectedIconStylePanelProps {
   isPathsBrokenApart: boolean;
 }
 
-const typeOptions = [
+const backgroundTypeOptions = [
+  { value: "flat", label: "Flat" },
+  { value: "gradient", label: "Gradient" },
+];
+
+const foregroundTypeOptions = [
   { value: "none", label: "None" },
   { value: "flat", label: "Flat" },
   { value: "gradient", label: "Gradient" },
@@ -71,6 +78,21 @@ const strokeOptions = [
   { value: "double", label: "Double" },
 ];
 
+type ShadowModeOptionValue = "none" | BackgroundStyleState["shadowMode"];
+
+const shadowModeOptions: Array<{ value: ShadowModeOptionValue; label: string }> = [
+  { value: "none", label: "None" },
+  { value: "outer", label: "Outer" },
+  { value: "inner", label: "Inner" },
+];
+
+type BackgroundShapeControlValue = BackgroundStyleState["shape"] | "none";
+
+const backgroundShapeOptions: Array<{
+  value: BackgroundShapeControlValue;
+  label: string;
+}> = [{ value: "none", label: "None" }, ...STYLE_SHAPE_OPTIONS];
+
 const eyeDropperIcon = <IconColorPicker size={14} stroke={1.8} />;
 
 function toNumber(value: string | number, fallback: number): number {
@@ -80,6 +102,12 @@ function toNumber(value: string | number, fallback: number): number {
 
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function toShadowModeControlValue(
+  surface: Pick<BackgroundStyleState, "shadowEnabled" | "shadowMode">,
+): ShadowModeOptionValue {
+  return surface.shadowEnabled ? (surface.shadowMode ?? "outer") : "none";
 }
 
 interface LabeledSliderProps {
@@ -153,6 +181,12 @@ export function SelectedIconStylePanel({
   const isBackgroundDefault = isDefaultBackgroundStyle(background);
   const isForegroundDefault = isDefaultForegroundStyle(foreground);
   const isBackgroundStrokeDisabled = background.strokeStyle === "none";
+  const backgroundShadowModeValue = toShadowModeControlValue(background);
+  const foregroundShadowModeValue = toShadowModeControlValue(foreground);
+  const backgroundTypeControlValue: Exclude<BackgroundStyleState["type"], "none"> =
+    background.type === "none" ? "flat" : background.type;
+  const backgroundShapeControlValue: BackgroundShapeControlValue =
+    background.type === "none" ? "none" : background.shape;
 
   return (
     <Stack h="100%" gap="sm" style={{ minHeight: 0 }}>
@@ -199,12 +233,16 @@ export function SelectedIconStylePanel({
               <Accordion.Panel>
                 <Stack gap="sm">
                   <Select
-                    label="Type"
-                    data={typeOptions}
-                    value={background.type}
+                    label="Fill"
+                    variant="filled"
+                    data={backgroundTypeOptions}
+                    value={backgroundTypeControlValue}
                     allowDeselect={false}
                     onChange={(value) => {
-                      const nextType = (value ?? "none") as BackgroundStyleState["type"];
+                      const nextType = (value ?? "flat") as Exclude<
+                        BackgroundStyleState["type"],
+                        "none"
+                      >;
                       if (background.type === "flat" && nextType === "gradient") {
                         onBackgroundChange({
                           ...background,
@@ -223,7 +261,8 @@ export function SelectedIconStylePanel({
 
                   {background.type === "flat" ? (
                     <ColorInput
-                      label="Color"
+                      label="Fill Color"
+                      variant="filled"
                       format="hexa"
                       eyeDropperIcon={eyeDropperIcon}
                       value={background.flatColor}
@@ -240,6 +279,7 @@ export function SelectedIconStylePanel({
                     <>
                       <Select
                         label="Gradient"
+                        variant="filled"
                         data={gradientOptions}
                         value={background.gradientType}
                         allowDeselect={false}
@@ -253,6 +293,7 @@ export function SelectedIconStylePanel({
                       />
                       <ColorInput
                         label="From"
+                        variant="filled"
                         format="hexa"
                         eyeDropperIcon={eyeDropperIcon}
                         value={background.gradientFrom}
@@ -265,6 +306,7 @@ export function SelectedIconStylePanel({
                       />
                       <ColorInput
                         label="To"
+                        variant="filled"
                         format="hexa"
                         eyeDropperIcon={eyeDropperIcon}
                         value={background.gradientTo}
@@ -278,24 +320,10 @@ export function SelectedIconStylePanel({
                     </>
                   ) : null}
 
-                  <Select
-                    label="Shape"
-                    data={STYLE_SHAPE_OPTIONS.map((option) => ({
-                      value: option.value,
-                      label: option.label,
-                    }))}
-                    value={background.shape}
-                    allowDeselect={false}
-                    onChange={(value) =>
-                      onBackgroundChange({
-                        ...background,
-                        shape: (value ?? "circle") as BackgroundStyleState["shape"],
-                      })
-                    }
-                  />
-
+                  <Divider />
                   <Select
                     label="Stroke"
+                    variant="filled"
                     data={strokeOptions}
                     value={background.strokeStyle}
                     allowDeselect={false}
@@ -309,6 +337,7 @@ export function SelectedIconStylePanel({
 
                   <NumberInput
                     label="Stroke Width"
+                    variant="filled"
                     min={0}
                     max={64}
                     step={1}
@@ -324,6 +353,7 @@ export function SelectedIconStylePanel({
 
                   <ColorInput
                     label="Stroke Color"
+                    variant="filled"
                     format="hexa"
                     eyeDropperIcon={eyeDropperIcon}
                     disabled={isBackgroundStrokeDisabled}
@@ -335,6 +365,105 @@ export function SelectedIconStylePanel({
                       })
                     }
                   />
+
+                  <Divider />
+                  <Select
+                    label="Shadow"
+                    variant="filled"
+                    data={shadowModeOptions}
+                    value={backgroundShadowModeValue}
+                    allowDeselect={false}
+                    onChange={(value) => {
+                      const nextValue = (value ?? "none") as ShadowModeOptionValue;
+                      onBackgroundChange({
+                        ...background,
+                        shadowEnabled: nextValue !== "none",
+                        shadowMode:
+                          nextValue === "none"
+                            ? "outer"
+                            : (nextValue as BackgroundStyleState["shadowMode"]),
+                      });
+                    }}
+                  />
+                  <Stack gap="xs">
+                    {backgroundShadowModeValue !== "none" ? (
+                      <>
+                      <ColorInput
+                        label="Shadow Color"
+                        variant="filled"
+                        format="hexa"
+                        eyeDropperIcon={eyeDropperIcon}
+                        value={background.shadowColor ?? "#000000"}
+                        onChange={(value) =>
+                          onBackgroundChange({
+                            ...background,
+                            shadowColor: value,
+                          })
+                        }
+                      />
+                      <LabeledSlider
+                        label="Shadow Blur"
+                        value={background.shadowBlur ?? 0}
+                        min={0}
+                        max={64}
+                        onChange={(value) =>
+                          onBackgroundChange({
+                            ...background,
+                            shadowBlur: value,
+                          })
+                        }
+                      />
+                      <Divider />
+                      </>
+                    ) : null}
+                    <Select
+                      label="Shape"
+                      variant="filled"
+                      data={backgroundShapeOptions}
+                      value={backgroundShapeControlValue}
+                      allowDeselect={false}
+                      onChange={(value) =>
+                        value === "none"
+                          ? onBackgroundChange({
+                              ...background,
+                              type: "none",
+                            })
+                          : onBackgroundChange({
+                              ...background,
+                              type: background.type === "none" ? "flat" : background.type,
+                              shape: (value ?? "circle") as BackgroundStyleState["shape"],
+                            })
+                      }
+                    />
+                    {backgroundShadowModeValue !== "none" ? (
+                      <>
+                      <LabeledSlider
+                        label="Offset X"
+                        value={background.shadowOffsetX ?? 0}
+                        min={-100}
+                        max={100}
+                        onChange={(value) =>
+                          onBackgroundChange({
+                            ...background,
+                            shadowOffsetX: value,
+                          })
+                        }
+                      />
+                      <LabeledSlider
+                        label="Offset Y"
+                        value={background.shadowOffsetY ?? 0}
+                        min={-100}
+                        max={100}
+                        onChange={(value) =>
+                          onBackgroundChange({
+                            ...background,
+                            shadowOffsetY: value,
+                          })
+                        }
+                      />
+                      </>
+                    ) : null}
+                  </Stack>
 
                   <LabeledSlider
                     label="Rotate"
@@ -381,20 +510,38 @@ export function SelectedIconStylePanel({
               </Accordion.Control>
               <Accordion.Panel>
                 <Stack gap="sm">
+                  <Group gap={6} wrap="nowrap" align="center">
+                    <IconInfoCircle
+                      size={24}
+                      stroke={1.8}
+                      color="var(--mantine-color-dimmed)"
+                      style={{ flexShrink: 0 }}
+                    />
+                    <Text size="sm" c="dimmed">
+                      Break the SVG to customize paths individually
+                    </Text>
+                  </Group>
+
                   <Group justify="space-between" align="center">
-                    <Text fw={500}>Paths</Text>
+                    <Text size="sm" fw={500}>
+                      Paths
+                    </Text>
                     {!isPathsBrokenApart ? (
                       <Button
                         variant="default"
+                        size="xs"
+                        w={124}
+                        leftSection={<IconGitBranch size={14} stroke={1.8} />}
                         disabled={!canBreakApartPaths}
                         onClick={onBreakApartPaths}
                       >
                         Break apart
                       </Button>
                     ) : (
-                      <Group gap={6}>
+                      <Group gap={6} wrap="nowrap" w={124} justify="space-between">
                         <ActionIcon
                           variant="default"
+                          size="sm"
                           aria-label="Previous foreground path"
                           disabled={foregroundPathOptions.length === 0}
                           onClick={() => onCycleForegroundPath(-1)}
@@ -406,6 +553,7 @@ export function SelectedIconStylePanel({
                         </Text>
                         <ActionIcon
                           variant="default"
+                          size="sm"
                           aria-label="Next foreground path"
                           disabled={foregroundPathOptions.length === 0}
                           onClick={() => onCycleForegroundPath(1)}
@@ -416,18 +564,12 @@ export function SelectedIconStylePanel({
                     )}
                   </Group>
 
-                  {!isPathsBrokenApart ? (
-                    <>
-                      <Text size="sm" c="dimmed">
-                        You can break the SVG to customize its individual paths.
-                      </Text>
-                      <Divider />
-                    </>
-                  ) : null}
+                  <Divider />
 
                   <Select
-                    label="Type"
-                    data={typeOptions}
+                    label="Fill"
+                    variant="filled"
+                    data={foregroundTypeOptions}
                     value={foreground.type}
                     allowDeselect={false}
                     onChange={(value) => {
@@ -450,7 +592,8 @@ export function SelectedIconStylePanel({
 
                   {foreground.type === "flat" ? (
                     <ColorInput
-                      label="Color"
+                      label="Fill Color"
+                      variant="filled"
                       format="hexa"
                       eyeDropperIcon={eyeDropperIcon}
                       value={foreground.flatColor}
@@ -467,6 +610,7 @@ export function SelectedIconStylePanel({
                     <>
                       <Select
                         label="Gradient"
+                        variant="filled"
                         data={gradientOptions}
                         value={foreground.gradientType}
                         allowDeselect={false}
@@ -480,6 +624,7 @@ export function SelectedIconStylePanel({
                       />
                       <ColorInput
                         label="From"
+                        variant="filled"
                         format="hexa"
                         eyeDropperIcon={eyeDropperIcon}
                         value={foreground.gradientFrom}
@@ -492,6 +637,7 @@ export function SelectedIconStylePanel({
                       />
                       <ColorInput
                         label="To"
+                        variant="filled"
                         format="hexa"
                         eyeDropperIcon={eyeDropperIcon}
                         value={foreground.gradientTo}
@@ -505,11 +651,15 @@ export function SelectedIconStylePanel({
                     </>
                   ) : null}
 
-                  <Text fw={500}>Transform</Text>
-                  <Group gap="xs">
+                  <Divider />
+                  <Text size="sm" fw={500}>
+                    Transform
+                  </Text>
+                  <Group gap="xs" grow wrap="nowrap">
                     <Tooltip label="Flip horizontally">
                       <ActionIcon
                         variant={foreground.flipX ? "filled" : "default"}
+                        size="sm"
                         aria-label="Flip horizontally"
                         onClick={() =>
                           onForegroundChange({
@@ -524,6 +674,7 @@ export function SelectedIconStylePanel({
                     <Tooltip label="Flip vertically">
                       <ActionIcon
                         variant={foreground.flipY ? "filled" : "default"}
+                        size="sm"
                         aria-label="Flip vertically"
                         onClick={() =>
                           onForegroundChange({
@@ -538,6 +689,7 @@ export function SelectedIconStylePanel({
                     <Tooltip label="Rotate +15°">
                       <ActionIcon
                         variant="default"
+                        size="sm"
                         aria-label="Rotate clockwise 15 degrees"
                         onClick={() =>
                           onForegroundChange({
@@ -552,6 +704,7 @@ export function SelectedIconStylePanel({
                     <Tooltip label="Rotate −15°">
                       <ActionIcon
                         variant="default"
+                        size="sm"
                         aria-label="Rotate counter-clockwise 15 degrees"
                         onClick={() =>
                           onForegroundChange({
@@ -566,6 +719,7 @@ export function SelectedIconStylePanel({
                     <Tooltip label="Zoom −10%">
                       <ActionIcon
                         variant="default"
+                        size="sm"
                         aria-label="Zoom out 10%"
                         onClick={() =>
                           onForegroundChange({
@@ -580,6 +734,7 @@ export function SelectedIconStylePanel({
                     <Tooltip label="Zoom +10%">
                       <ActionIcon
                         variant="default"
+                        size="sm"
                         aria-label="Zoom in 10%"
                         onClick={() =>
                           onForegroundChange({
@@ -592,6 +747,7 @@ export function SelectedIconStylePanel({
                       </ActionIcon>
                     </Tooltip>
                   </Group>
+                  <Divider />
 
                   <LabeledSlider
                     label="Position X"
@@ -644,6 +800,80 @@ export function SelectedIconStylePanel({
                       })
                     }
                   />
+
+                  <Divider />
+                  <Select
+                    label="Shadow"
+                    variant="filled"
+                    data={shadowModeOptions}
+                    value={foregroundShadowModeValue}
+                    allowDeselect={false}
+                    onChange={(value) => {
+                      const nextValue = (value ?? "none") as ShadowModeOptionValue;
+                      onForegroundChange({
+                        ...foreground,
+                        shadowEnabled: nextValue !== "none",
+                        shadowMode:
+                          nextValue === "none"
+                            ? "outer"
+                            : (nextValue as ForegroundStyleState["shadowMode"]),
+                      });
+                    }}
+                  />
+                  {foregroundShadowModeValue !== "none" ? (
+                    <Stack gap="xs">
+                      <ColorInput
+                        label="Shadow Color"
+                        variant="filled"
+                        format="hexa"
+                        eyeDropperIcon={eyeDropperIcon}
+                        value={foreground.shadowColor ?? "#000000"}
+                        onChange={(value) =>
+                          onForegroundChange({
+                            ...foreground,
+                            shadowColor: value,
+                          })
+                        }
+                      />
+                      <LabeledSlider
+                        label="Shadow Blur"
+                        value={foreground.shadowBlur ?? 0}
+                        min={0}
+                        max={64}
+                        onChange={(value) =>
+                          onForegroundChange({
+                            ...foreground,
+                            shadowBlur: value,
+                          })
+                        }
+                      />
+                      <Divider />
+                      <LabeledSlider
+                        label="Offset X"
+                        value={foreground.shadowOffsetX ?? 0}
+                        min={-100}
+                        max={100}
+                        onChange={(value) =>
+                          onForegroundChange({
+                            ...foreground,
+                            shadowOffsetX: value,
+                          })
+                        }
+                      />
+                      <LabeledSlider
+                        label="Offset Y"
+                        value={foreground.shadowOffsetY ?? 0}
+                        min={-100}
+                        max={100}
+                        onChange={(value) =>
+                          onForegroundChange({
+                            ...foreground,
+                            shadowOffsetY: value,
+                          })
+                        }
+                      />
+                    </Stack>
+                  ) : null}
 
                   <Checkbox
                     checked={foreground.clipToBackground}
