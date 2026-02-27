@@ -324,7 +324,11 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
           withBorder
           radius="md"
           p="xs"
-          style={{ boxShadow: "0 -10px 24px rgba(0, 0, 0, 0.38)" }}
+          style={{
+            boxShadow: "0 -10px 24px rgba(0, 0, 0, 0.38)",
+            overflow: "hidden",
+            minWidth: 0,
+          }}
         >
           <Tabs value={activeTab} onChange={setActiveTab}>
             <Tabs.List>
@@ -345,10 +349,14 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
             <Tabs.Panel value="history" pt="xs">
               {historyItems.length > 0 ? (
                 <ScrollArea
-                  type="auto"
+                  type="hover"
                   scrollbars="x"
+                  style={{ width: "100%", maxWidth: "100%" }}
                   viewportProps={{
-                    style: { overflowY: "hidden", paddingBottom: 0 },
+                    style: {
+                      overflowY: "hidden",
+                      touchAction: "pan-x",
+                    },
                   }}
                 >
                   <div
@@ -357,6 +365,8 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
                       flexWrap: "nowrap",
                       gap: 6,
                       width: "max-content",
+                      minWidth: "max-content",
+                      scrollSnapType: "x proximity",
                     }}
                   >
                     {historyItems.map((item) => (
@@ -368,6 +378,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
                         style={{
                           width: 80,
                           flex: "0 0 auto",
+                          scrollSnapAlign: "start",
                         }}
                         media={
                           <div className="ps-icon-preview-content">

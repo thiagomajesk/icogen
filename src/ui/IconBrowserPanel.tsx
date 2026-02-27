@@ -64,10 +64,8 @@ export function IconBrowserPanel({
 
       <ScrollArea
         style={{ flex: 1, minHeight: 0 }}
-        type="auto"
+        type="hover"
         scrollbars="y"
-        offsetScrollbars="present"
-        viewportProps={{ style: { paddingRight: 20 } }}
       >
         <SimpleGrid cols={4} spacing="sm" verticalSpacing="sm">
           {icons.map((icon) => {

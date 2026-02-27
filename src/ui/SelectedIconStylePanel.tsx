@@ -294,10 +294,8 @@ export function SelectedIconStylePanel({
 
       <ScrollArea
         style={{ flex: 1, minHeight: 0 }}
-        type="auto"
+        type="hover"
         scrollbars="y"
-        offsetScrollbars="present"
-        viewportProps={{ style: { paddingRight: 20 } }}
       >
         <Accordion
           defaultValue={["background", "foreground"]}

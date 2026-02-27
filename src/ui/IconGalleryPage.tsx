@@ -4,16 +4,24 @@ import {
   Anchor,
   AppShell,
   Badge,
+  Center,
   Chip,
   Group,
   Popover,
   ScrollArea,
+  SegmentedControl,
   Select,
   SimpleGrid,
   Stack,
   Text,
 } from "@mantine/core";
-import { IconHome, IconInfoCircle } from "@tabler/icons-react";
+import { useMediaQuery } from "@mantine/hooks";
+import {
+  IconFilter,
+  IconHome,
+  IconInfoCircle,
+  IconLayoutGrid,
+} from "@tabler/icons-react";
 import type { IconLockEntry } from "../core/icon-client";
 import { getLocalIconPath } from "../core/icon-client";
 import { iconLabel } from "../utils/format";
@@ -33,6 +41,9 @@ interface TagCountEntry {
 
 const ICON_PAGE_SIZE = 100;
 const GALLERY_MAIN_BG = "var(--mantine-color-dark-9)";
+const MOBILE_GALLERY_LAYOUT_MAX_WIDTH = 960;
+
+type GalleryMobilePanel = "filters" | "gallery";
 
 function iconCategory(iconPath: string): string {
   const [category] = iconPath.split("/");
@@ -62,8 +73,12 @@ export function IconGalleryPage({
   const [category, setCategory] = useState("all");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(ICON_PAGE_SIZE);
+  const [mobilePanel, setMobilePanel] = useState<GalleryMobilePanel>("gallery");
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const query = search.trim().toLowerCase();
+  const isMobileLayout = useMediaQuery(
+    `(max-width: ${MOBILE_GALLERY_LAYOUT_MAX_WIDTH}px)`,
+  ) ?? false;
 
   const categories = useMemo(() => {
     return [...new Set(icons.map((icon) => iconCategory(icon.path)))]
@@ -164,6 +179,215 @@ export function IconGalleryPage({
     };
   }, [filteredIcons.length, hasMoreIcons]);
 
+  const filtersPanel = (
+    <Stack h="100%" gap="sm" style={{ minHeight: 0 }}>
+      <Group justify="space-between" align="center">
+        <Text fw={700}>Gallery</Text>
+        <ActionIcon
+          variant="default"
+          aria-label="Go to home"
+          onClick={onGoHome}
+        >
+          <IconHome size={16} />
+        </ActionIcon>
+      </Group>
+      <Select
+        aria-label="Category"
+        data={[{ value: "all", label: "All categories" }, ...categories]}
+        value={category}
+        onChange={(value) => setCategory(value ?? "all")}
+        allowDeselect={false}
+      />
+      <ScrollArea
+        style={{ flex: 1, minHeight: 0 }}
+        type="hover"
+        scrollbars="y"
+      >
+        <Group gap="xs" align="flex-start">
+          {visibleTagCounts.map((item) => (
+            <Chip
+              key={item.tag}
+              checked={selectedTag === item.tag}
+              onChange={(checked) => {
+                setSelectedTag(checked ? item.tag : null);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              variant="filled"
+              size="sm"
+            >
+              {`${item.tag} (${item.count})`}
+            </Chip>
+          ))}
+        </Group>
+      </ScrollArea>
+    </Stack>
+  );
+
+  const galleryPanel = (
+    <Stack style={{ minWidth: 0 }} gap="sm">
+      <SearchInput
+        value={search}
+        onChange={setSearch}
+        placeholder="Search icons..."
+      />
+      <Text fw={700} size="xl" tt="capitalize">
+        {activeSectionLabel}
+      </Text>
+
+      {visibleIcons.length === 0 ? (
+        <Text c="dimmed">No icons found for the current filters.</Text>
+      ) : (
+        <SimpleGrid cols={{ base: 2, sm: 3, md: 4, lg: 5, xl: 6 }} spacing="sm">
+          {visibleIcons.map((icon) => (
+            <IconPreviewTile
+              key={icon.path}
+              clickTarget="media"
+              type="button"
+              onClick={() => onOpenIcon(icon.path, icon.name)}
+              title={`${icon.name} (${icon.author})`}
+              media={
+                <img
+                  className="ps-icon-preview-content"
+                  loading="lazy"
+                  decoding="async"
+                  src={getLocalIconPath(icon.path)}
+                  alt={icon.name}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                    display: "block",
+                  }}
+                />
+              }
+              label={
+                <Group justify="center" align="center" gap={4} wrap="nowrap">
+                  <Popover width={320} position="bottom" withArrow shadow="md">
+                    <Popover.Target>
+                      <ActionIcon
+                        component="span"
+                        size="xs"
+                        variant="subtle"
+                        color="gray"
+                        aria-label={`Open info for ${icon.name}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                        }}
+                        onMouseDown={(event) => {
+                          event.stopPropagation();
+                        }}
+                      >
+                        <IconInfoCircle size={14} />
+                      </ActionIcon>
+                    </Popover.Target>
+                    <Popover.Dropdown onClick={(event) => event.stopPropagation()}>
+                      <Stack gap={6}>
+                        {icon.externalUrl ? (
+                          <Anchor
+                            href={icon.externalUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            fw={700}
+                            size="sm"
+                          >
+                            {icon.name}
+                          </Anchor>
+                        ) : (
+                          <Text fw={700} size="sm">
+                            {icon.name}
+                          </Text>
+                        )}
+                        <Text size="sm">
+                          <strong>Authored by</strong> {icon.author}
+                        </Text>
+                        {icon.tags.length > 0 ? (
+                          <Group gap={6} wrap="wrap">
+                            {icon.tags.map((tag, index) => (
+                              <Badge key={`${icon.path}-${tag}-${index}`} variant="light">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </Group>
+                        ) : null}
+                        <Text size="sm" style={{ fontStyle: "italic" }}>
+                          {icon.description ?? "No description available."}
+                        </Text>
+                      </Stack>
+                    </Popover.Dropdown>
+                  </Popover>
+                  <Text size="sm" ta="center" lh={1.2} style={{ minWidth: 0 }}>
+                    {iconLabel(icon.path)}
+                  </Text>
+                </Group>
+              }
+            />
+          ))}
+        </SimpleGrid>
+      )}
+
+      {hasMoreIcons ? <div ref={loadMoreRef} style={{ width: "100%", height: 1 }} /> : null}
+    </Stack>
+  );
+
+  if (isMobileLayout) {
+    return (
+      <AppShell padding="xs" style={{ height: "100dvh" }}>
+        <AppShell.Main
+          style={{
+            minHeight: 0,
+            height: "100%",
+            backgroundColor: GALLERY_MAIN_BG,
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              minHeight: 0,
+              display: "grid",
+              gridTemplateRows: "auto minmax(0, 1fr)",
+              gap: 8,
+            }}
+          >
+            <SegmentedControl
+              value={mobilePanel}
+              onChange={(value) => setMobilePanel(value as GalleryMobilePanel)}
+              fullWidth
+              data={[
+                {
+                  value: "filters",
+                  label: (
+                    <Center style={{ gap: 6 }}>
+                      <IconFilter size={14} stroke={1.8} />
+                      <span>Filters</span>
+                    </Center>
+                  ),
+                },
+                {
+                  value: "gallery",
+                  label: (
+                    <Center style={{ gap: 6 }}>
+                      <IconLayoutGrid size={14} stroke={1.8} />
+                      <span>Gallery</span>
+                    </Center>
+                  ),
+                },
+              ]}
+            />
+            <div style={{ minHeight: 0, overflow: "hidden" }}>
+              {mobilePanel === "filters" ? (
+                <div style={{ height: "100%", minHeight: 0 }}>{filtersPanel}</div>
+              ) : (
+                <div style={{ height: "100%", minHeight: 0, overflow: "auto" }}>
+                  {galleryPanel}
+                </div>
+              )}
+            </div>
+          </div>
+        </AppShell.Main>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell
       navbar={{ width: 320, breakpoint: "sm" }}
@@ -171,155 +395,11 @@ export function IconGalleryPage({
       style={{ minHeight: "100dvh" }}
     >
       <AppShell.Navbar p="md" withBorder>
-        <Stack h="100%" gap="sm" style={{ minHeight: 0 }}>
-          <Group justify="space-between" align="center">
-            <Text fw={700}>Gallery</Text>
-            <ActionIcon
-              variant="default"
-              aria-label="Go to home"
-              onClick={onGoHome}
-            >
-              <IconHome size={16} />
-            </ActionIcon>
-          </Group>
-          <Select
-            aria-label="Category"
-            data={[{ value: "all", label: "All categories" }, ...categories]}
-            value={category}
-            onChange={(value) => setCategory(value ?? "all")}
-            allowDeselect={false}
-          />
-          <ScrollArea
-            style={{ flex: 1, minHeight: 0 }}
-            type="auto"
-            scrollbars="y"
-            offsetScrollbars="present"
-            viewportProps={{ style: { paddingRight: 12 } }}
-          >
-            <Group gap="xs" align="flex-start">
-              {visibleTagCounts.map((item) => (
-                <Chip
-                  key={item.tag}
-                  checked={selectedTag === item.tag}
-                  onChange={(checked) => {
-                    setSelectedTag(checked ? item.tag : null);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  variant="filled"
-                  size="sm"
-                >
-                  {`${item.tag} (${item.count})`}
-                </Chip>
-              ))}
-            </Group>
-          </ScrollArea>
-        </Stack>
+        {filtersPanel}
       </AppShell.Navbar>
 
       <AppShell.Main style={{ backgroundColor: GALLERY_MAIN_BG }}>
-        <Stack style={{ minWidth: 0 }} gap="sm">
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Search icons..."
-          />
-          <Text fw={700} size="xl" tt="capitalize">
-            {activeSectionLabel}
-          </Text>
-
-          {visibleIcons.length === 0 ? (
-            <Text c="dimmed">No icons found for the current filters.</Text>
-          ) : (
-            <SimpleGrid cols={{ base: 2, sm: 3, md: 4, lg: 5, xl: 6 }} spacing="sm">
-              {visibleIcons.map((icon) => (
-                <IconPreviewTile
-                  key={icon.path}
-                  clickTarget="media"
-                  type="button"
-                  onClick={() => onOpenIcon(icon.path, icon.name)}
-                  title={`${icon.name} (${icon.author})`}
-                  media={
-                    <img
-                      className="ps-icon-preview-content"
-                      loading="lazy"
-                      decoding="async"
-                      src={getLocalIconPath(icon.path)}
-                      alt={icon.name}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "contain",
-                        display: "block",
-                      }}
-                    />
-                  }
-                  label={
-                    <Group justify="center" align="center" gap={4} wrap="nowrap">
-                      <Popover width={320} position="bottom" withArrow shadow="md">
-                        <Popover.Target>
-                          <ActionIcon
-                            component="span"
-                            size="xs"
-                            variant="subtle"
-                            color="gray"
-                            aria-label={`Open info for ${icon.name}`}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                            }}
-                            onMouseDown={(event) => {
-                              event.stopPropagation();
-                            }}
-                          >
-                            <IconInfoCircle size={14} />
-                          </ActionIcon>
-                        </Popover.Target>
-                        <Popover.Dropdown onClick={(event) => event.stopPropagation()}>
-                          <Stack gap={6}>
-                            {icon.externalUrl ? (
-                              <Anchor
-                                href={icon.externalUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                fw={700}
-                                size="sm"
-                              >
-                                {icon.name}
-                              </Anchor>
-                            ) : (
-                              <Text fw={700} size="sm">
-                                {icon.name}
-                              </Text>
-                            )}
-                            <Text size="sm">
-                              <strong>Authored by</strong> {icon.author}
-                            </Text>
-                            {icon.tags.length > 0 ? (
-                              <Group gap={6} wrap="wrap">
-                                {icon.tags.map((tag, index) => (
-                                  <Badge key={`${icon.path}-${tag}-${index}`} variant="light">
-                                    {tag}
-                                  </Badge>
-                                ))}
-                              </Group>
-                            ) : null}
-                            <Text size="sm" style={{ fontStyle: "italic" }}>
-                              {icon.description ?? "No description available."}
-                            </Text>
-                          </Stack>
-                        </Popover.Dropdown>
-                      </Popover>
-                      <Text size="sm" ta="center" lh={1.2} style={{ minWidth: 0 }}>
-                        {iconLabel(icon.path)}
-                      </Text>
-                    </Group>
-                  }
-                />
-              ))}
-            </SimpleGrid>
-          )}
-
-          {hasMoreIcons ? <div ref={loadMoreRef} style={{ width: "100%", height: 1 }} /> : null}
-        </Stack>
+        {galleryPanel}
       </AppShell.Main>
     </AppShell>
   );

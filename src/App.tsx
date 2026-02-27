@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AppShell, SegmentedControl } from "@mantine/core";
+import { AppShell, Center, SegmentedControl } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
+import { IconAdjustmentsHorizontal, IconEye } from "@tabler/icons-react";
 import { IconLibrarySidebar } from "./ui/IconLibrarySidebar";
 import { PreviewPanel } from "./ui/PreviewPanel";
 import {
@@ -23,7 +24,7 @@ import { useEditorStore } from "./core/editorStore";
 import { useIconAssignment } from "./hooks/useIconAssignment";
 import { useIconCatalog } from "./hooks/useIconCatalog";
 
-type MobilePanel = "library" | "preview";
+type MobilePanel = "settings" | "preview";
 
 const COMPACT_LAYOUT_MAX_WIDTH = 1280;
 const MOBILE_LAYOUT_MAX_WIDTH = 960;
@@ -703,12 +704,28 @@ export default function App({
               onChange={(nextValue) => setMobilePanel(nextValue as MobilePanel)}
               fullWidth
               data={[
-                { label: "Library", value: "library" },
-                { label: "Preview", value: "preview" },
+                {
+                  value: "settings",
+                  label: (
+                    <Center style={{ gap: 6 }}>
+                      <IconAdjustmentsHorizontal size={14} stroke={1.8} />
+                      <span>Settings</span>
+                    </Center>
+                  ),
+                },
+                {
+                  value: "preview",
+                  label: (
+                    <Center style={{ gap: 6 }}>
+                      <IconEye size={14} stroke={1.8} />
+                      <span>Preview</span>
+                    </Center>
+                  ),
+                },
               ]}
             />
             <div style={{ minHeight: 0, overflow: "auto" }}>
-              {mobilePanel === "library" ? iconLibraryPanel : previewPanel}
+              {mobilePanel === "settings" ? iconLibraryPanel : previewPanel}
             </div>
           </div>
         </AppShell.Main>
