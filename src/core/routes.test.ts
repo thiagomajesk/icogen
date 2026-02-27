@@ -23,6 +23,7 @@ test("parseAppRoute parses icon route and decodes URL components", () => {
 });
 
 test("parseAppRoute returns null for invalid routes", () => {
+  assert.deepEqual(parseAppRoute(""), { kind: "home" });
   assert.equal(parseAppRoute("/unknown"), null);
   assert.equal(parseAppRoute("/editor"), null);
   assert.deepEqual(parseAppRoute("/editor/only-category"), {
@@ -31,6 +32,7 @@ test("parseAppRoute returns null for invalid routes", () => {
     icon: "only-category",
   });
   assert.equal(parseAppRoute("/a/b/c"), null);
+  assert.equal(parseAppRoute("/%E0%A4%A"), null);
 });
 
 test("buildEditorPath and routeToIconPath are inverse for valid icon paths", () => {
@@ -40,4 +42,10 @@ test("buildEditorPath and routeToIconPath are inverse for valid icon paths", () 
   const route = parseAppRoute(path!);
   assert.ok(route && route.kind === "icon");
   assert.equal(routeToIconPath(route), "lorc/acid-blob.svg");
+});
+
+test("buildEditorPath returns null for invalid icon paths", () => {
+  assert.equal(buildEditorPath(""), null);
+  assert.equal(buildEditorPath("lorc"), null);
+  assert.equal(buildEditorPath("lorc/.svg"), null);
 });
