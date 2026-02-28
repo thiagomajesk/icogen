@@ -1117,10 +1117,11 @@ export function SelectedIconStylePanel({
                   />
 
                   {isPathsBrokenApart ? (
-                    <Group grow>
+                    <Group grow wrap="wrap">
                       <Button
                         variant="default"
                         leftSection={<IconRotate2 size={16} />}
+                        miw={132}
                         disabled={isForegroundDefault}
                         onClick={onResetForegroundPart}
                       >
@@ -1129,6 +1130,7 @@ export function SelectedIconStylePanel({
                       <Button
                         variant="default"
                         leftSection={<IconRotate2 size={16} />}
+                        miw={132}
                         onClick={onResetForegroundAll}
                       >
                         Reset all
@@ -1270,10 +1272,11 @@ export function SelectedIconStylePanel({
 
                   <Divider />
                   {isPathsBrokenApart ? (
-                    <Group grow>
+                    <Group grow wrap="wrap">
                       <Button
                         variant="default"
                         leftSection={<IconRotate2 size={16} />}
+                        miw={132}
                         disabled={isAnimationDefault}
                         onClick={onResetAnimationPart}
                       >
@@ -1282,6 +1285,7 @@ export function SelectedIconStylePanel({
                       <Button
                         variant="default"
                         leftSection={<IconRotate2 size={16} />}
+                        miw={132}
                         onClick={onResetAnimationAll}
                       >
                         Reset all
