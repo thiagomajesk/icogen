@@ -43,6 +43,9 @@ export interface AnimationStepTransform {
   y: number;
   scale: number;
   rotate: number;
+  opacity?: number;
+  skewX?: number;
+  skewY?: number;
 }
 
 export type ThreeStepAnimation = [
@@ -51,7 +54,7 @@ export type ThreeStepAnimation = [
   AnimationStepTransform,
 ];
 
-export type AnimationPresetValue = "none" | "wiggle" | "bounce" | "pulse";
+export type AnimationPresetValue = "none" | (string & {});
 
 export interface AnimationClipState {
   preset: AnimationPresetValue;

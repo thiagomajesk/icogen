@@ -32,6 +32,7 @@ function resetAnimatedTransforms(host: HTMLDivElement): void {
     node.style.translate = "";
     node.style.rotate = "";
     node.style.scale = "";
+    node.style.opacity = "";
     node.style.willChange = "";
   }
 }
@@ -134,7 +135,7 @@ export function ThreePreview({
         continue;
       }
 
-      target.style.willChange = "transform";
+      target.style.willChange = "transform, opacity";
       const segmentDuration = Math.max(60, Math.round(clip.durationMs / 2));
       const [startStep, middleStep, endStep] = steps;
 
@@ -152,6 +153,9 @@ export function ThreePreview({
             translateY: [startStep.y, middleStep.y],
             scale: [startStep.scale, middleStep.scale],
             rotate: [`${startStep.rotate}deg`, `${middleStep.rotate}deg`],
+            opacity: [startStep.opacity ?? 1, middleStep.opacity ?? 1],
+            skewX: [`${startStep.skewX ?? 0}deg`, `${middleStep.skewX ?? 0}deg`],
+            skewY: [`${startStep.skewY ?? 0}deg`, `${middleStep.skewY ?? 0}deg`],
             ease: clip.ease,
             duration: segmentDuration,
           },
@@ -164,6 +168,9 @@ export function ThreePreview({
             translateY: [middleStep.y, endStep.y],
             scale: [middleStep.scale, endStep.scale],
             rotate: [`${middleStep.rotate}deg`, `${endStep.rotate}deg`],
+            opacity: [middleStep.opacity ?? 1, endStep.opacity ?? 1],
+            skewX: [`${middleStep.skewX ?? 0}deg`, `${endStep.skewX ?? 0}deg`],
+            skewY: [`${middleStep.skewY ?? 0}deg`, `${endStep.skewY ?? 0}deg`],
             ease: clip.ease,
             duration: segmentDuration,
           },
