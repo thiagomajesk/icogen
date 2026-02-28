@@ -13,6 +13,7 @@ import {
 } from "@mantine/core";
 import { IconHistory, IconInfoCircle, IconTemplate } from "@tabler/icons-react";
 import type {
+  AnimationClipState,
   CustomIcon,
   LayerState,
   ParsedSvg,
@@ -46,6 +47,8 @@ interface PreviewPanelProps {
   selectedIconDescription: string | null;
   selectedIconTags: string[];
   selectedIconExternalUrl: string | null;
+  animationClip: AnimationClipState;
+  pathAnimationClips?: Record<string, AnimationClipState>;
 }
 
 interface HistoryIconRef {
@@ -75,6 +78,8 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
   selectedIconDescription,
   selectedIconTags,
   selectedIconExternalUrl,
+  animationClip,
+  pathAnimationClips,
 }) => {
   const [activeTab, setActiveTab] = useState<string | null>("history");
   const [iconSvgs, setIconSvgs] = useState<Record<string, string>>({});
@@ -314,6 +319,8 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
               transform={previewTransform}
               readOnly={!pathsInteractive}
               onClickPath={pathsInteractive ? onSelectForegroundPath : undefined}
+              animationClip={animationClip}
+              pathAnimationClips={pathAnimationClips}
             />
           </div>
         </div>

@@ -12,7 +12,7 @@ import {
   setCurrentIcon,
   ICON_HISTORY_UPDATED_EVENT,
 } from "./icon-history";
-import { defaultBackground, defaultForeground } from "./constants";
+import { defaultAnimationClip, defaultBackground, defaultForeground } from "./constants";
 
 interface StorageLike {
   getItem(key: string): string | null;
@@ -80,6 +80,7 @@ const settings = {
     ...defaultForeground,
     flatColor: "#aabbcc",
   },
+  animationClip: defaultAnimationClip,
 };
 
 const foregroundPathSettings = {
@@ -93,9 +94,23 @@ const foregroundPathSettings = {
   },
 };
 
+const animationPathSettings = {
+  enabled: true,
+  pathClips: {
+    "piece-2": {
+      preset: "bounce" as const,
+      durationMs: 900,
+      ease: "inOutSine",
+      loop: true,
+      alternate: true,
+    },
+  },
+};
+
 const defaultSettings = {
   background: defaultBackground,
   foreground: defaultForeground,
+  animationClip: defaultAnimationClip,
 };
 
 test("icon history persists and restores icon settings", () => {
@@ -184,6 +199,31 @@ test("foreground path settings keep an icon entry even with default surface styl
   assert.deepEqual(restored?.foregroundPaths, foregroundPathSettings);
 });
 
+test("animation path settings are persisted and restored", () => {
+  localStorageMock.clear();
+
+  saveIconSettings("manticore", {
+    ...settings,
+    animationPaths: animationPathSettings,
+  });
+
+  const restored = loadIconSettings("manticore");
+  assert.deepEqual(restored?.animationPaths, animationPathSettings);
+});
+
+test("animation path settings keep an icon entry even with default base settings", () => {
+  localStorageMock.clear();
+
+  saveIconSettings("chimera", {
+    ...defaultSettings,
+    animationPaths: animationPathSettings,
+  });
+
+  const restored = loadIconSettings("chimera");
+  assert.notEqual(restored, null);
+  assert.deepEqual(restored?.animationPaths, animationPathSettings);
+});
+
 test("loadIconSettings normalizes legacy surface styles with missing shadow fields", () => {
   localStorageMock.clear();
 
@@ -268,6 +308,66 @@ test("loadIconSettings normalizes legacy foreground path styles", () => {
     false,
   );
   assert.equal(restored?.foregroundPaths?.pathStyles["piece-9"]?.shadowMode, "outer");
+});
+
+test("loadIconSettings adds default animation clip for legacy settings", () => {
+  localStorageMock.clear();
+  localStorageMock.setItem(
+    "icon-history",
+    JSON.stringify({
+      legacy: {
+        background: defaultBackground,
+        foreground: defaultForeground,
+      },
+    }),
+  );
+
+  const restored = loadIconSettings("legacy");
+  assert.deepEqual(restored?.animationClip, defaultAnimationClip);
+});
+
+test("loadIconSettings normalizes legacy animation path clips", () => {
+  localStorageMock.clear();
+  localStorageMock.setItem(
+    "icon-history",
+    JSON.stringify({
+      legacy: {
+        background: defaultBackground,
+        foreground: defaultForeground,
+        animationPaths: {
+          enabled: true,
+          pathClips: {
+            "piece-1": {
+              preset: "pulse",
+              durationMs: 745.2,
+              ease: "",
+              loop: true,
+              alternate: true,
+              targetPathId: "piece-1",
+            },
+            "piece-2": {
+              preset: "none",
+              durationMs: 1200,
+              ease: "inOutSine",
+              loop: true,
+              alternate: true,
+            },
+          },
+        },
+      },
+    }),
+  );
+
+  const restored = loadIconSettings("legacy");
+  assert.notEqual(restored?.animationPaths, undefined);
+  assert.deepEqual(restored?.animationPaths?.pathClips["piece-1"], {
+    preset: "pulse",
+    durationMs: 745,
+    ease: "inOutSine",
+    loop: true,
+    alternate: true,
+  });
+  assert.equal(restored?.animationPaths?.pathClips["piece-2"], undefined);
 });
 
 test("recent icon accesses keep latest 100 unique entries", () => {

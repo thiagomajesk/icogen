@@ -38,6 +38,32 @@ export interface AnimationState {
   endRotate: number;
 }
 
+export interface AnimationStepTransform {
+  x: number;
+  y: number;
+  scale: number;
+  rotate: number;
+}
+
+export type ThreeStepAnimation = [
+  AnimationStepTransform,
+  AnimationStepTransform,
+  AnimationStepTransform,
+];
+
+export type AnimationPresetValue = "none" | "wiggle" | "bounce" | "pulse";
+
+export interface AnimationClipState {
+  preset: AnimationPresetValue;
+  durationMs: number;
+  ease: string;
+  loop: boolean;
+  alternate: boolean;
+  targetPathId: string | null;
+}
+
+export type AnimationClipConfig = Omit<AnimationClipState, "targetPathId">;
+
 export interface EffectsState {
   blur: number;
   hueRotate: number;

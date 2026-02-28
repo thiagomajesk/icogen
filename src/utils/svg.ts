@@ -750,13 +750,14 @@ export function buildCompositeSvg(
   const layerContent = layerStyleParts.length
     ? `<g style="${layerStyleParts.join("")}">${layerMarkup}</g>`
     : layerMarkup;
+  const foregroundRootMarkup = `<g data-foreground-root="true">${layerContent}</g>`;
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" style="isolation:isolate;">
   <defs>${backgroundMarkup.defs}${defs.join("")}</defs>
   ${backgroundMarkup.shape}
   <g${wrapperTransform}${clipPathAttr}>
-    ${layerContent}
+    ${foregroundRootMarkup}
   </g>
 </svg>`.trim();
 }

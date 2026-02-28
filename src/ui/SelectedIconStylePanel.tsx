@@ -35,12 +35,27 @@ import {
   IconZoomIn,
   IconZoomOut,
 } from "@tabler/icons-react";
-import { defaultBackground, defaultForeground } from "../core/constants";
+import {
+  defaultAnimationClip,
+  defaultBackground,
+  defaultForeground,
+} from "../core/constants";
+import {
+  ANIMATION_EASING_OPTIONS,
+  ANIMATION_PRESET_OPTIONS,
+  isDefaultAnimationClipState,
+  normalizeAnimationClipState,
+} from "../core/animation-clip";
 import {
   isDefaultBackgroundStyle,
   isDefaultForegroundStyle,
 } from "../core/style-state";
-import type { BackgroundStyleState, ForegroundStyleState } from "../core/types";
+import type {
+  AnimationClipState,
+  AnimationPresetValue,
+  BackgroundStyleState,
+  ForegroundStyleState,
+} from "../core/types";
 import { STYLE_SHAPE_OPTIONS, StyleShapeIcon } from "./style-shapes";
 
 interface SelectedIconStylePanelProps {
@@ -51,11 +66,14 @@ interface SelectedIconStylePanelProps {
   onBackgroundChange: (background: BackgroundStyleState) => void;
   onBreakApartPaths: () => void;
   onResetBreakApartPaths: () => void;
+  onCycleAnimationTarget: (direction: 1 | -1) => void;
   onCycleForegroundPath: (direction: 1 | -1) => void;
   onDeselectIcon: () => void;
   onForegroundChange: (foreground: ForegroundStyleState) => void;
   selectedForegroundPathId: string | null;
   isPathsBrokenApart: boolean;
+  animationClip: AnimationClipState;
+  onAnimationClipChange: (patch: Partial<AnimationClipState>) => void;
 }
 
 const backgroundTypeOptions = [
@@ -114,6 +132,9 @@ const backgroundShapeOptions: Array<{
 }> = [{ value: "none", label: "None" }, ...STYLE_SHAPE_OPTIONS];
 
 const eyeDropperIcon = <IconColorPicker size={14} stroke={1.8} />;
+const ANIMATION_DURATION_MIN_MS = 200;
+const ANIMATION_DURATION_MAX_MS = 3000;
+const ANIMATION_TOOLTIP_COLOR = "dark.6";
 
 function gradientTypeIcon(gradientType: string) {
   const size = 14;
@@ -203,6 +224,8 @@ interface LabeledSliderProps {
   min: number;
   max: number;
   step?: number;
+  marks?: Array<{ value: number; label?: string }>;
+  restrictToMarks?: boolean;
   onChange: (value: number) => void;
 }
 
@@ -212,6 +235,8 @@ function LabeledSlider({
   min,
   max,
   step = 1,
+  marks,
+  restrictToMarks = false,
   onChange,
 }: LabeledSliderProps) {
   return (
@@ -229,6 +254,8 @@ function LabeledSlider({
         min={min}
         max={max}
         step={step}
+        marks={marks}
+        restrictToMarks={restrictToMarks}
         value={value}
         onChange={onChange}
       />
@@ -251,13 +278,37 @@ function pathCounterLabel(
   return `${Math.max(1, index + 1)}/${foregroundPathOptions.length}`;
 }
 
+function animationTargetCounterLabel(
+  targetPathId: string | null,
+  foregroundPathOptions: Array<{ id: string; label: string }>,
+): string {
+  const total = foregroundPathOptions.length + 1;
+  if (total === 0) {
+    return "0/0";
+  }
+
+  if (targetPathId === null) {
+    return `1/${total}`;
+  }
+
+  const index = foregroundPathOptions.findIndex((option) => option.id === targetPathId);
+  if (index === -1) {
+    return `1/${total}`;
+  }
+
+  return `${index + 2}/${total}`;
+}
+
 export function SelectedIconStylePanel({
+  animationClip,
   background,
   canBreakApartPaths,
   foreground,
   foregroundPathOptions,
+  onAnimationClipChange,
   onBackgroundChange,
   onBreakApartPaths,
+  onCycleAnimationTarget,
   onResetBreakApartPaths,
   onCycleForegroundPath,
   onDeselectIcon,
@@ -278,6 +329,7 @@ export function SelectedIconStylePanel({
   const foregroundBlendOpacityPercent = Math.round(
     (foreground.blendOpacity ?? 1) * 100,
   );
+  const isAnimationDefault = isDefaultAnimationClipState(animationClip);
 
   return (
     <Stack h="100%" gap="sm" style={{ minHeight: 0 }}>
@@ -1072,6 +1124,143 @@ export function SelectedIconStylePanel({
                     }}
                   >
                     Reset foreground
+                  </Button>
+                </Stack>
+              </Accordion.Panel>
+            </Accordion.Item>
+
+            <Accordion.Item value="animation">
+              <Accordion.Control>
+                <Text fw={600}>Animation</Text>
+              </Accordion.Control>
+              <Accordion.Panel>
+                <Stack gap="sm">
+                  <Group justify="space-between" align="center">
+                    <Text size="sm" fw={500}>
+                      Target
+                    </Text>
+                    {isPathsBrokenApart ? (
+                      <Group gap={6} wrap="nowrap" w={124} justify="space-between">
+                        <ActionIcon
+                          variant="default"
+                          size="sm"
+                          aria-label="Previous animation target"
+                          onClick={() => onCycleAnimationTarget(-1)}
+                        >
+                          <IconChevronLeft size={16} />
+                        </ActionIcon>
+                        <Text size="sm" c="dimmed" w={52} ta="center">
+                          {animationTargetCounterLabel(
+                            animationClip.targetPathId,
+                            foregroundPathOptions,
+                          )}
+                        </Text>
+                        <ActionIcon
+                          variant="default"
+                          size="sm"
+                          aria-label="Next animation target"
+                          onClick={() => onCycleAnimationTarget(1)}
+                        >
+                          <IconChevronRight size={16} />
+                        </ActionIcon>
+                      </Group>
+                    ) : (
+                      <Text size="sm" c="dimmed">
+                        Foreground
+                      </Text>
+                    )}
+                  </Group>
+                  <Select
+                    label="Preset"
+                    variant="filled"
+                    data={ANIMATION_PRESET_OPTIONS}
+                    value={animationClip.preset}
+                    allowDeselect={false}
+                    onChange={(value) =>
+                      onAnimationClipChange({
+                        preset: (value ?? "none") as AnimationPresetValue,
+                      })
+                    }
+                  />
+                  <LabeledSlider
+                    label="Duration (ms)"
+                    min={ANIMATION_DURATION_MIN_MS}
+                    max={ANIMATION_DURATION_MAX_MS}
+                    value={Math.min(
+                      ANIMATION_DURATION_MAX_MS,
+                      Math.max(ANIMATION_DURATION_MIN_MS, animationClip.durationMs),
+                    )}
+                    onChange={(value) =>
+                      onAnimationClipChange({
+                        durationMs: Math.min(
+                          ANIMATION_DURATION_MAX_MS,
+                          Math.max(ANIMATION_DURATION_MIN_MS, value),
+                        ),
+                      })
+                    }
+                  />
+
+                  <Select
+                    label="Easing"
+                    variant="filled"
+                    data={ANIMATION_EASING_OPTIONS}
+                    value={animationClip.ease}
+                    allowDeselect={false}
+                    onChange={(value) =>
+                      onAnimationClipChange({
+                        ease: value ?? animationClip.ease,
+                      })
+                    }
+                  />
+
+                  <Group grow>
+                    <Tooltip
+                      label="Repeats the animation continuously. Turn off to play only once."
+                      withArrow
+                      position="top-start"
+                      color={ANIMATION_TOOLTIP_COLOR}
+                    >
+                      <Checkbox
+                        checked={animationClip.loop}
+                        label="Loop"
+                        onChange={(event) =>
+                          onAnimationClipChange({
+                            loop: event.currentTarget.checked,
+                          })
+                        }
+                      />
+                    </Tooltip>
+                    <Tooltip
+                      label="Reverses direction on each loop iteration (ping-pong motion)."
+                      withArrow
+                      position="top-start"
+                      color={ANIMATION_TOOLTIP_COLOR}
+                    >
+                      <Checkbox
+                        checked={animationClip.alternate}
+                        label="Alternate"
+                        onChange={(event) =>
+                          onAnimationClipChange({
+                            alternate: event.currentTarget.checked,
+                          })
+                        }
+                      />
+                    </Tooltip>
+                  </Group>
+
+                  <Divider />
+                  <Button
+                    variant="default"
+                    fullWidth
+                    leftSection={<IconRotate2 size={16} />}
+                    disabled={isAnimationDefault}
+                    onClick={() =>
+                      onAnimationClipChange(
+                        normalizeAnimationClipState(defaultAnimationClip),
+                      )
+                    }
+                  >
+                    Reset animation
                   </Button>
                 </Stack>
               </Accordion.Panel>

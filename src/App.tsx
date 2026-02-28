@@ -6,9 +6,16 @@ import { IconLibrarySidebar } from "./ui/IconLibrarySidebar";
 import { PreviewPanel } from "./ui/PreviewPanel";
 import {
   defaultAnimation,
+  defaultAnimationClip,
   defaultEffects,
 } from "./core/constants";
-import type { ForegroundStyleState, ParsedSvg } from "./core/types";
+import type {
+  AnimationClipConfig,
+  AnimationClipState,
+  ForegroundStyleState,
+  ParsedSvg,
+} from "./core/types";
+import { normalizeAnimationClipState } from "./core/animation-clip";
 import {
   buildCompositeSvg,
   buildPreviewTransform,
@@ -16,6 +23,7 @@ import {
 import { parseSvgBreakout } from "./utils/svg-breakout";
 import { buildForegroundComposite } from "./utils/foreground-composite";
 import {
+  type AnimationPathSettings,
   loadIconSettings,
   type ForegroundPathSettings,
 } from "./core/icon-history";
@@ -40,6 +48,11 @@ interface ForegroundPathEditorState {
   options: ForegroundPathOption[];
   selectedPathId: string | null;
   pathStyles: Record<string, ForegroundStyleState>;
+}
+
+interface AnimationPathEditorState {
+  enabled: boolean;
+  pathClips: Record<string, AnimationClipState>;
 }
 
 interface AppProps {
@@ -80,6 +93,8 @@ export default function App({
   const setBackground = useEditorStore((state) => state.setBackground);
   const foreground = useEditorStore((state) => state.foreground);
   const setForeground = useEditorStore((state) => state.setForeground);
+  const animationClip = useEditorStore((state) => state.animationClip);
+  const setAnimationClip = useEditorStore((state) => state.setAnimationClip);
 
   const setStatus = useEditorStore((state) => state.setStatus);
   const customIcons = useEditorStore((state) => state.customIcons);
@@ -94,6 +109,9 @@ export default function App({
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>("preview");
   const [foregroundPathEditors, setForegroundPathEditors] = useState<
     Record<string, ForegroundPathEditorState>
+  >({});
+  const [animationPathEditors, setAnimationPathEditors] = useState<
+    Record<string, AnimationPathEditorState>
   >({});
   const [pathBlink, setPathBlink] = useState<{
     iconPath: string | null;
@@ -149,6 +167,85 @@ export default function App({
     return foregroundPathEditors[selectedIconPath] ?? null;
   }, [foregroundPathEditors, selectedIconPath]);
 
+  const currentAnimationPathEditor = useMemo<AnimationPathEditorState | null>(() => {
+    if (!selectedIconPath) {
+      return null;
+    }
+
+    return animationPathEditors[selectedIconPath] ?? null;
+  }, [animationPathEditors, selectedIconPath]);
+
+  useEffect(() => {
+    setAnimationClip((previous) => {
+      if (!previous.targetPathId) {
+        return previous;
+      }
+
+      const hasTargetPath = Boolean(
+        currentPathEditor?.options.some((option) => option.id === previous.targetPathId),
+      );
+
+      if (hasTargetPath) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        targetPathId: null,
+      };
+    });
+  }, [currentPathEditor?.options, setAnimationClip]);
+
+  useEffect(() => {
+    if (!selectedIconPath || !currentPathEditor?.enabled) {
+      return;
+    }
+
+    const validPathIds = new Set(currentPathEditor.options.map((option) => option.id));
+    setAnimationPathEditors((previous) => {
+      const current = previous[selectedIconPath];
+      if (!current?.enabled) {
+        return previous;
+      }
+
+      let hasChanges = false;
+      const nextPathClips: Record<string, AnimationClipState> = {};
+      for (const [pathId, clip] of Object.entries(current.pathClips)) {
+        if (!validPathIds.has(pathId)) {
+          hasChanges = true;
+          continue;
+        }
+
+        const normalized = normalizeAnimationClipState({
+          ...clip,
+          targetPathId: pathId,
+        });
+        if (normalized.preset === "none") {
+          hasChanges = true;
+          continue;
+        }
+
+        nextPathClips[pathId] = normalized;
+      }
+
+      if (!hasChanges) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        [selectedIconPath]: {
+          enabled: true,
+          pathClips: nextPathClips,
+        },
+      };
+    });
+  }, [
+    currentPathEditor?.enabled,
+    currentPathEditor?.options,
+    selectedIconPath,
+  ]);
+
   const activePathStyle = useMemo<ForegroundStyleState | null>(() => {
     if (!currentPathEditor?.enabled || !currentPathEditor.selectedPathId) {
       return null;
@@ -176,6 +273,63 @@ export default function App({
     currentPathEditor?.selectedPathId,
   ]);
 
+  const currentAnimationPathSettings = useMemo<AnimationPathSettings | null>(() => {
+    if (!currentAnimationPathEditor?.enabled) {
+      return null;
+    }
+
+    const pathClips: Record<string, AnimationClipConfig> = {};
+    for (const [pathId, clip] of Object.entries(currentAnimationPathEditor.pathClips)) {
+      const normalized = normalizeAnimationClipState({
+        ...clip,
+        targetPathId: pathId,
+      });
+      if (normalized.preset === "none") {
+        continue;
+      }
+
+      const { targetPathId: _ignoredTargetPathId, ...config } = normalized;
+      pathClips[pathId] = config;
+    }
+
+    return {
+      enabled: true,
+      pathClips,
+    };
+  }, [currentAnimationPathEditor?.enabled, currentAnimationPathEditor?.pathClips]);
+
+  const displayAnimationClip = useMemo<AnimationClipState>(() => {
+    const normalizedGlobal = normalizeAnimationClipState(animationClip);
+    const selectedTargetPathId =
+      currentPathEditor?.enabled && normalizedGlobal.targetPathId
+        ? normalizedGlobal.targetPathId
+        : null;
+    if (!selectedTargetPathId) {
+      return normalizeAnimationClipState({
+        ...normalizedGlobal,
+        targetPathId: null,
+      });
+    }
+
+    const selectedPathClip =
+      currentAnimationPathEditor?.pathClips[selectedTargetPathId] ?? null;
+    if (!selectedPathClip) {
+      return normalizeAnimationClipState({
+        ...normalizedGlobal,
+        targetPathId: selectedTargetPathId,
+      });
+    }
+
+    return normalizeAnimationClipState({
+      ...selectedPathClip,
+      targetPathId: selectedTargetPathId,
+    });
+  }, [
+    animationClip,
+    currentAnimationPathEditor?.pathClips,
+    currentPathEditor?.enabled,
+  ]);
+
   useEffect(() => {
     if (selectedIconName !== previousIconNameRef.current) {
       previousIconNameRef.current = selectedIconName;
@@ -183,10 +337,12 @@ export default function App({
     }
 
     if (selectedIconName) {
-      saveCurrentIconSettings(currentForegroundPathSettings);
+      saveCurrentIconSettings(currentForegroundPathSettings, currentAnimationPathSettings);
     }
   }, [
+    animationClip,
     background,
+    currentAnimationPathSettings,
     currentForegroundPathSettings,
     foreground,
     saveCurrentIconSettings,
@@ -293,7 +449,11 @@ export default function App({
 
     const saved = loadIconSettings(selectedIconName);
     const savedForegroundPaths = saved?.foregroundPaths;
-    if (!savedForegroundPaths?.enabled) {
+    const savedAnimationPaths = saved?.animationPaths;
+    const shouldRestorePathEditors = Boolean(
+      savedForegroundPaths?.enabled || savedAnimationPaths?.enabled,
+    );
+    if (!shouldRestorePathEditors) {
       return;
     }
 
@@ -313,16 +473,16 @@ export default function App({
     const optionIds = new Set(options.map((option) => option.id));
 
     const pathStyles: Record<string, ForegroundStyleState> = {};
-    for (const [pathId, style] of Object.entries(savedForegroundPaths.pathStyles)) {
+    for (const [pathId, style] of Object.entries(savedForegroundPaths?.pathStyles ?? {})) {
       if (optionIds.has(pathId)) {
         pathStyles[pathId] = style;
       }
     }
 
+    const savedSelectedPathId = savedForegroundPaths?.selectedPathId ?? null;
     const selectedPathId =
-      savedForegroundPaths.selectedPathId &&
-      optionIds.has(savedForegroundPaths.selectedPathId)
-        ? savedForegroundPaths.selectedPathId
+      savedSelectedPathId && optionIds.has(savedSelectedPathId)
+        ? savedSelectedPathId
         : options[0]?.id ?? null;
 
     setForegroundPathEditors((previous) => ({
@@ -334,9 +494,65 @@ export default function App({
         pathStyles,
       },
     }));
+
+    const pathClips: Record<string, AnimationClipState> = {};
+    for (const [pathId, clip] of Object.entries(savedAnimationPaths?.pathClips ?? {})) {
+      if (!optionIds.has(pathId)) {
+        continue;
+      }
+
+      const normalized = normalizeAnimationClipState({
+        ...(clip as Partial<AnimationClipState>),
+        targetPathId: pathId,
+      });
+      if (normalized.preset === "none") {
+        continue;
+      }
+
+      pathClips[pathId] = normalized;
+    }
+
+    setAnimationPathEditors((previous) => ({
+      ...previous,
+      [selectedIconPath]: {
+        enabled: true,
+        pathClips,
+      },
+    }));
   }, [base.path, base.svg, selectedIconName, selectedIconPath]);
 
   const displayForeground = activePathStyle ?? foreground;
+
+  const activePathAnimationClips = useMemo<Record<string, AnimationClipState>>(() => {
+    if (!selectedIconPath || !currentPathEditor?.enabled) {
+      return {};
+    }
+
+    const validPathIds = new Set(currentPathEditor.options.map((option) => option.id));
+    const pathClips = currentAnimationPathEditor?.pathClips ?? {};
+    return Object.fromEntries(
+      Object.entries(pathClips).flatMap(([pathId, clip]) => {
+        if (!validPathIds.has(pathId)) {
+          return [];
+        }
+
+        const normalized = normalizeAnimationClipState({
+          ...clip,
+          targetPathId: pathId,
+        });
+        if (normalized.preset === "none") {
+          return [];
+        }
+
+        return [[pathId, normalized]];
+      }),
+    );
+  }, [
+    currentAnimationPathEditor?.pathClips,
+    currentPathEditor?.enabled,
+    currentPathEditor?.options,
+    selectedIconPath,
+  ]);
 
   const foregroundForComposite = useMemo<ForegroundStyleState | null>(() => {
     if (!currentPathEditor?.enabled) {
@@ -463,6 +679,37 @@ export default function App({
         },
       };
     });
+
+    setAnimationPathEditors((previous) => {
+      const current = previous[selectedIconPath];
+      const optionIds = new Set(breakout.pieces.map((piece) => piece.id));
+      const pathClips: Record<string, AnimationClipState> = {};
+
+      for (const [pathId, clip] of Object.entries(current?.pathClips ?? {})) {
+        if (!optionIds.has(pathId)) {
+          continue;
+        }
+
+        const normalized = normalizeAnimationClipState({
+          ...clip,
+          targetPathId: pathId,
+        });
+        if (normalized.preset === "none") {
+          continue;
+        }
+
+        pathClips[pathId] = normalized;
+      }
+
+      return {
+        ...previous,
+        [selectedIconPath]: {
+          enabled: true,
+          pathClips,
+        },
+      };
+    });
+
     setStatusMessage("Foreground paths are now editable individually.");
   }, [base.path, base.svg, selectedIconPath, setStatusMessage]);
 
@@ -472,6 +719,15 @@ export default function App({
     }
 
     setForegroundPathEditors((previous) => {
+      if (!previous[selectedIconPath]) {
+        return previous;
+      }
+
+      const { [selectedIconPath]: _removed, ...rest } = previous;
+      return rest;
+    });
+
+    setAnimationPathEditors((previous) => {
       if (!previous[selectedIconPath]) {
         return previous;
       }
@@ -492,11 +748,28 @@ export default function App({
       };
     });
 
+    setAnimationClip((previous) => {
+      if (!previous.targetPathId) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        targetPathId: null,
+      };
+    });
+
     setStatusMessage("Per-path foreground editing has been reset.");
-  }, [selectedIconPath, setStatusMessage]);
+  }, [selectedIconPath, setAnimationClip, setStatusMessage]);
 
   const setSelectedForegroundPathId = useCallback(
-    (nextPathId: string, shouldBlink = true) => {
+    (
+      nextPathId: string,
+      options: { blink?: boolean; forceBlink?: boolean } = {},
+    ) => {
+      const shouldBlink = options.blink ?? true;
+      const forceBlink = options.forceBlink ?? false;
+
       if (!selectedIconPath) {
         return;
       }
@@ -529,7 +802,11 @@ export default function App({
       }
 
       setPathBlink((previous) => {
-        if (previous.iconPath === selectedIconPath && previous.pathId === nextPathId) {
+        if (
+          !forceBlink &&
+          previous.iconPath === selectedIconPath &&
+          previous.pathId === nextPathId
+        ) {
           return previous;
         }
 
@@ -541,6 +818,27 @@ export default function App({
       });
     },
     [selectedIconPath],
+  );
+
+  const setAnimationTargetPathId = useCallback(
+    (targetPathId: string | null, shouldBlink = true) => {
+      setAnimationClip((previous) =>
+        normalizeAnimationClipState({
+          ...previous,
+          targetPathId,
+        }),
+      );
+
+      if (!targetPathId) {
+        return;
+      }
+
+      setSelectedForegroundPathId(targetPathId, {
+        blink: shouldBlink,
+        forceBlink: true,
+      });
+    },
+    [setAnimationClip, setSelectedForegroundPathId],
   );
 
   const cycleForegroundPath = useCallback(
@@ -562,9 +860,9 @@ export default function App({
           ? 0
           : (currentIndex + direction + current.options.length) %
             current.options.length;
-      setSelectedForegroundPathId(current.options[nextIndex].id);
+      setAnimationTargetPathId(current.options[nextIndex].id, true);
     },
-    [foregroundPathEditors, selectedIconPath, setSelectedForegroundPathId],
+    [foregroundPathEditors, selectedIconPath, setAnimationTargetPathId],
   );
 
   const handleForegroundChange = useCallback(
@@ -601,6 +899,95 @@ export default function App({
       currentPathEditor?.selectedPathId,
       selectedIconPath,
       setForeground,
+    ],
+  );
+
+  const handleAnimationClipChange = useCallback(
+    (patch: Partial<AnimationClipState>) => {
+      const selectedTargetPathId =
+        currentPathEditor?.enabled && animationClip.targetPathId
+          ? animationClip.targetPathId
+          : null;
+
+      if (selectedIconPath && selectedTargetPathId) {
+        setAnimationPathEditors((previous) => {
+          const current = previous[selectedIconPath];
+          const baseClip =
+            current?.pathClips[selectedTargetPathId] ??
+            normalizeAnimationClipState({
+              ...animationClip,
+              targetPathId: selectedTargetPathId,
+            });
+          const nextClip = normalizeAnimationClipState({
+            ...baseClip,
+            ...patch,
+            targetPathId: selectedTargetPathId,
+          });
+
+          const nextPathClips = {
+            ...(current?.pathClips ?? {}),
+          };
+          if (nextClip.preset === "none") {
+            delete nextPathClips[selectedTargetPathId];
+          } else {
+            nextPathClips[selectedTargetPathId] = nextClip;
+          }
+
+          return {
+            ...previous,
+            [selectedIconPath]: {
+              enabled: true,
+              pathClips: nextPathClips,
+            },
+          };
+        });
+        return;
+      }
+
+      setAnimationClip((previous) => {
+        return normalizeAnimationClipState({
+          ...previous,
+          ...patch,
+          targetPathId: currentPathEditor?.enabled ? previous.targetPathId : null,
+        });
+      });
+    },
+    [
+      animationClip,
+      currentPathEditor?.enabled,
+      selectedIconPath,
+      setAnimationClip,
+    ],
+  );
+
+  const cycleAnimationTarget = useCallback(
+    (direction: 1 | -1) => {
+      if (!currentPathEditor?.enabled) {
+        return;
+      }
+
+      const targetIds: Array<string | null> = [
+        null,
+        ...currentPathEditor.options.map((option) => option.id),
+      ];
+      if (targetIds.length === 0) {
+        return;
+      }
+
+      const currentIndex = targetIds.findIndex(
+        (pathId) => pathId === animationClip.targetPathId,
+      );
+      const safeCurrentIndex = currentIndex === -1 ? 0 : currentIndex;
+      const nextIndex =
+        (safeCurrentIndex + direction + targetIds.length) % targetIds.length;
+      const nextTargetPathId = targetIds[nextIndex];
+      setAnimationTargetPathId(nextTargetPathId, true);
+    },
+    [
+      animationClip.targetPathId,
+      currentPathEditor?.enabled,
+      currentPathEditor?.options,
+      setAnimationTargetPathId,
     ],
   );
 
@@ -651,6 +1038,9 @@ export default function App({
       foregroundPathOptions={currentPathEditor?.options ?? []}
       selectedForegroundPathId={currentPathEditor?.selectedPathId ?? null}
       onCycleForegroundPath={cycleForegroundPath}
+      onCycleAnimationTarget={cycleAnimationTarget}
+      animationClip={displayAnimationClip}
+      onAnimationClipChange={handleAnimationClipChange}
     />
   );
 
@@ -670,13 +1060,15 @@ export default function App({
       }}
       pathsInteractive={Boolean(currentPathEditor?.enabled)}
       onSelectForegroundPath={(pathId) => {
-        setSelectedForegroundPathId(pathId, true);
+        setAnimationTargetPathId(pathId, true);
       }}
       selectedIconName={selectedIconMetadata?.name ?? null}
       selectedIconAuthor={selectedIconMetadata?.author ?? null}
       selectedIconDescription={selectedIconMetadata?.description ?? null}
       selectedIconTags={selectedIconMetadata?.tags ?? []}
       selectedIconExternalUrl={selectedIconMetadata?.externalUrl ?? null}
+      animationClip={animationClip}
+      pathAnimationClips={activePathAnimationClips}
     />
   );
 

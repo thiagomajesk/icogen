@@ -1,4 +1,6 @@
 import type {
+  AnimationClipConfig,
+  AnimationClipState,
   BackgroundStyleState,
   ForegroundStyleState,
 } from "./types";
@@ -6,7 +8,11 @@ import {
   isDefaultBackgroundStyle,
   isDefaultForegroundStyle,
 } from "./style-state";
-import { defaultBackground, defaultForeground } from "./constants";
+import {
+  isDefaultAnimationClipState,
+  normalizeAnimationClipState,
+} from "./animation-clip";
+import { defaultAnimationClip, defaultBackground, defaultForeground } from "./constants";
 import { parseLocalJson, readLocalJson } from "../utils/local-storage";
 
 const ICON_HISTORY_KEY = "icon-history";
@@ -24,10 +30,17 @@ export interface ForegroundPathSettings {
   pathStyles: Record<string, ForegroundStyleState>;
 }
 
+export interface AnimationPathSettings {
+  enabled: boolean;
+  pathClips: Record<string, AnimationClipConfig>;
+}
+
 export interface IconSettings {
   background: BackgroundStyleState;
   foreground: ForegroundStyleState;
   foregroundPaths?: ForegroundPathSettings;
+  animationClip?: AnimationClipState;
+  animationPaths?: AnimationPathSettings;
 }
 
 export type IconHistory = Record<string, IconSettings>;
@@ -71,6 +84,42 @@ function normalizeForegroundPathSettings(
   };
 }
 
+function normalizeAnimationPathSettings(
+  animationPaths: AnimationPathSettings | undefined,
+): AnimationPathSettings | undefined {
+  if (!animationPaths?.enabled) {
+    return undefined;
+  }
+
+  const pathClips = Object.fromEntries(
+    Object.entries(animationPaths.pathClips ?? {}).flatMap(([pieceId, clip]) => {
+      if (!pieceId) {
+        return [];
+      }
+
+      const normalized = normalizeAnimationClipState({
+        ...(clip as Partial<AnimationClipState>),
+        targetPathId: pieceId,
+      });
+      if (normalized.preset === "none") {
+        return [];
+      }
+
+      const { targetPathId: _ignoredTargetPathId, ...config } = normalized;
+      return [[pieceId, config satisfies AnimationClipConfig]];
+    }),
+  );
+
+  if (Object.keys(pathClips).length === 0) {
+    return undefined;
+  }
+
+  return {
+    enabled: true,
+    pathClips,
+  };
+}
+
 /**
  * Loads all remembered icon settings from localStorage.
  * Returns an empty object when there is no saved history yet.
@@ -90,11 +139,21 @@ export function saveIconSettings(
   try {
     const history = loadIconHistory();
     const hasForegroundPathSettings = Boolean(settings.foregroundPaths?.enabled);
+    const normalizedAnimationClip = normalizeAnimationClipState(
+      settings.animationClip ?? defaultAnimationClip,
+    );
+    const normalizedAnimationPaths = normalizeAnimationPathSettings(
+      settings.animationPaths,
+    );
+    const hasCustomAnimation = !isDefaultAnimationClipState(normalizedAnimationClip);
+    const hasPathAnimationSettings = Boolean(normalizedAnimationPaths?.enabled);
 
     const isDefaultSettings =
       isDefaultBackgroundStyle(settings.background) &&
       isDefaultForegroundStyle(settings.foreground) &&
-      !hasForegroundPathSettings;
+      !hasForegroundPathSettings &&
+      !hasCustomAnimation &&
+      !hasPathAnimationSettings;
 
     if (isDefaultSettings) {
       if (!history[iconName]) {
@@ -107,7 +166,15 @@ export function saveIconSettings(
       return;
     }
 
-    history[iconName] = settings;
+    const nextSettings: IconSettings = {
+      ...settings,
+      animationClip: normalizedAnimationClip,
+    };
+    if (normalizedAnimationPaths) {
+      nextSettings.animationPaths = normalizedAnimationPaths;
+    }
+
+    history[iconName] = nextSettings;
 
     // If we exceed max size, remove the first key
     const keys = Object.keys(history);
@@ -162,14 +229,19 @@ export function loadIconSettings(iconName: string): IconSettings | null {
   const normalizedForegroundPaths = normalizeForegroundPathSettings(
     settings.foregroundPaths,
   );
+  const normalizedAnimationPaths = normalizeAnimationPathSettings(
+    settings.animationPaths,
+  );
 
   return {
     ...settings,
     background: normalizeSurfaceStyle(settings.background, defaultBackground),
     foreground: normalizeSurfaceStyle(settings.foreground, defaultForeground),
+    animationClip: normalizeAnimationClipState(settings.animationClip),
     ...(settings.foregroundPaths
       ? { foregroundPaths: normalizedForegroundPaths }
       : {}),
+    ...(normalizedAnimationPaths ? { animationPaths: normalizedAnimationPaths } : {}),
   };
 }
 

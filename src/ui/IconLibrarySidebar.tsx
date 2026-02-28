@@ -1,4 +1,5 @@
 import {
+  AnimationClipState,
   BackgroundStyleState,
   CustomIcon,
   ForegroundStyleState,
@@ -31,6 +32,9 @@ interface IconLibrarySidebarProps {
   foregroundPathOptions: Array<{ id: string; label: string }>;
   selectedForegroundPathId: string | null;
   onCycleForegroundPath: (direction: 1 | -1) => void;
+  onCycleAnimationTarget: (direction: 1 | -1) => void;
+  animationClip: AnimationClipState;
+  onAnimationClipChange: (patch: Partial<AnimationClipState>) => void;
 }
 
 export function IconLibrarySidebar({
@@ -42,9 +46,12 @@ export function IconLibrarySidebar({
   isPathsBrokenApart,
   maxPage,
   onAssign,
+  animationClip,
+  onAnimationClipChange,
   onBackgroundChange,
   onBreakApartPaths,
   onResetBreakApartPaths,
+  onCycleAnimationTarget,
   onCycleForegroundPath,
   onDeselectIcon,
   onForegroundChange,
@@ -75,6 +82,9 @@ export function IconLibrarySidebar({
         foregroundPathOptions={foregroundPathOptions}
         selectedForegroundPathId={selectedForegroundPathId}
         onCycleForegroundPath={onCycleForegroundPath}
+        onCycleAnimationTarget={onCycleAnimationTarget}
+        animationClip={animationClip}
+        onAnimationClipChange={onAnimationClipChange}
       />
     );
   }

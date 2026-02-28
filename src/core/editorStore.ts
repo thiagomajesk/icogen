@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type {
+  AnimationClipState,
   BackgroundStyleState,
   CustomIcon,
   EditorStatus,
@@ -12,8 +13,10 @@ import {
   defaultOverlayLayer,
   defaultBackground,
   defaultForeground,
+  defaultAnimationClip,
 } from "./constants";
 import {
+  type AnimationPathSettings,
   type ForegroundPathSettings,
   saveIconSettings,
   saveRecentIconAccess,
@@ -32,6 +35,7 @@ interface EditorState {
   overlay: typeof defaultOverlayLayer;
   background: BackgroundStyleState;
   foreground: ForegroundStyleState;
+  animationClip: AnimationClipState;
   status: EditorStatus;
   customIcons: CustomIcon[];
   selectedIconPath: string | null;
@@ -46,10 +50,16 @@ interface EditorState {
   setOverlay: (v: typeof defaultOverlayLayer) => void;
   setBackground: (v: BackgroundStyleState) => void;
   setForeground: (v: ForegroundStyleState) => void;
+  setAnimationClip: (
+    v: AnimationClipState | ((previous: AnimationClipState) => AnimationClipState),
+  ) => void;
   setStatus: (v: EditorStatus) => void;
   setCustomIcons: (v: CustomIcon[]) => void;
   setSelectedIconPath: (v: string | null, name?: string | null) => void;
-  saveCurrentIconSettings: (foregroundPaths?: ForegroundPathSettings | null) => void;
+  saveCurrentIconSettings: (
+    foregroundPaths?: ForegroundPathSettings | null,
+    animationPaths?: AnimationPathSettings | null,
+  ) => void;
   loadIconSettingsFromHistory: (iconName: string) => void;
 }
 
@@ -69,6 +79,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   overlay: defaultOverlayLayer,
   background: defaultBackground,
   foreground: defaultForeground,
+  animationClip: defaultAnimationClip,
   status: { message: "Ready.", error: false },
   customIcons: [],
   selectedIconPath: null,
@@ -83,6 +94,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setOverlay: (overlay) => set({ overlay }),
   setBackground: (background) => set({ background }),
   setForeground: (foreground) => set({ foreground }),
+  setAnimationClip: (nextAnimationClip) =>
+    set((state) => ({
+      animationClip:
+        typeof nextAnimationClip === "function"
+          ? nextAnimationClip(state.animationClip)
+          : nextAnimationClip,
+    })),
   setStatus: (status) => set({ status }),
   setCustomIcons: (customIcons) => set({ customIcons }),
   setSelectedIconPath: (selectedIconPath, name = null) => {
@@ -104,16 +122,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         overlay: defaultOverlayLayer,
         background: defaultBackground,
         foreground: defaultForeground,
+        animationClip: defaultAnimationClip,
       });
     }
   },
-  saveCurrentIconSettings: (foregroundPaths = null) => {
+  saveCurrentIconSettings: (foregroundPaths = null, animationPaths = null) => {
     const state = get();
     if (state.selectedIconName) {
       saveIconSettings(state.selectedIconName, {
         background: state.background,
         foreground: state.foreground,
         foregroundPaths: foregroundPaths ?? undefined,
+        animationClip: state.animationClip,
+        animationPaths: animationPaths ?? undefined,
       });
     }
   },
@@ -123,6 +144,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       set({
         background: settings.background,
         foreground: settings.foreground,
+        animationClip: settings.animationClip ?? defaultAnimationClip,
       });
     }
   },

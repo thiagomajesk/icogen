@@ -1,4 +1,5 @@
 import {
+  AnimationClipState,
   AnimationState,
   BackgroundStyleState,
   EffectsState,
@@ -43,6 +44,15 @@ export const defaultAnimation: AnimationState = {
   endY: 0,
   endScale: 1,
   endRotate: 0,
+};
+
+export const defaultAnimationClip: AnimationClipState = {
+  preset: "none",
+  durationMs: 1200,
+  ease: "inOutSine",
+  loop: true,
+  alternate: true,
+  targetPathId: null,
 };
 
 export const defaultEffects: EffectsState = {
