@@ -28,13 +28,16 @@ interface IconLibrarySidebarProps {
   canBreakApartPaths: boolean;
   isPathsBrokenApart: boolean;
   onBreakApartPaths: () => void;
-  onResetBreakApartPaths: () => void;
+  onResetForegroundPart: () => void;
+  onResetForegroundAll: () => void;
   foregroundPathOptions: Array<{ id: string; label: string }>;
   selectedForegroundPathId: string | null;
   onCycleForegroundPath: (direction: 1 | -1) => void;
   onCycleAnimationTarget: (direction: 1 | -1) => void;
   animationClip: AnimationClipState;
   onAnimationClipChange: (patch: Partial<AnimationClipState>) => void;
+  onResetAnimationPart: () => void;
+  onResetAnimationAll: () => void;
 }
 
 export function IconLibrarySidebar({
@@ -48,9 +51,12 @@ export function IconLibrarySidebar({
   onAssign,
   animationClip,
   onAnimationClipChange,
+  onResetAnimationAll,
+  onResetAnimationPart,
   onBackgroundChange,
   onBreakApartPaths,
-  onResetBreakApartPaths,
+  onResetForegroundAll,
+  onResetForegroundPart,
   onCycleAnimationTarget,
   onCycleForegroundPath,
   onDeselectIcon,
@@ -74,7 +80,8 @@ export function IconLibrarySidebar({
         foreground={foreground}
         onBackgroundChange={onBackgroundChange}
         onBreakApartPaths={onBreakApartPaths}
-        onResetBreakApartPaths={onResetBreakApartPaths}
+        onResetForegroundPart={onResetForegroundPart}
+        onResetForegroundAll={onResetForegroundAll}
         onDeselectIcon={onDeselectIcon}
         onForegroundChange={onForegroundChange}
         canBreakApartPaths={canBreakApartPaths}
@@ -85,6 +92,8 @@ export function IconLibrarySidebar({
         onCycleAnimationTarget={onCycleAnimationTarget}
         animationClip={animationClip}
         onAnimationClipChange={onAnimationClipChange}
+        onResetAnimationPart={onResetAnimationPart}
+        onResetAnimationAll={onResetAnimationAll}
       />
     );
   }

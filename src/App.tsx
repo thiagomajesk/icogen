@@ -8,6 +8,7 @@ import {
   defaultAnimation,
   defaultAnimationClip,
   defaultEffects,
+  defaultForeground,
 } from "./core/constants";
 import type {
   AnimationClipConfig,
@@ -762,6 +763,64 @@ export default function App({
     setStatusMessage("Per-path foreground editing has been reset.");
   }, [selectedIconPath, setAnimationClip, setStatusMessage]);
 
+  const resetForegroundPart = useCallback(() => {
+    if (
+      !selectedIconPath ||
+      !currentPathEditor?.enabled ||
+      !currentPathEditor.selectedPathId
+    ) {
+      setForeground(defaultForeground);
+      return;
+    }
+
+    const selectedPathId = currentPathEditor.selectedPathId;
+    setForegroundPathEditors((previous) => {
+      const current = previous[selectedIconPath];
+      if (!current) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        [selectedIconPath]: {
+          ...current,
+          pathStyles: {
+            ...current.pathStyles,
+            [selectedPathId]: defaultForeground,
+          },
+        },
+      };
+    });
+  }, [
+    currentPathEditor?.enabled,
+    currentPathEditor?.selectedPathId,
+    selectedIconPath,
+    setForeground,
+  ]);
+
+  const resetForegroundAll = useCallback(() => {
+    setForeground(defaultForeground);
+
+    if (!selectedIconPath || !currentPathEditor?.enabled) {
+      return;
+    }
+
+    setForegroundPathEditors((previous) => {
+      const current = previous[selectedIconPath];
+      if (!current || Object.keys(current.pathStyles).length === 0) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        [selectedIconPath]: {
+          ...current,
+          pathStyles: {},
+        },
+      };
+    });
+  }, [currentPathEditor?.enabled, selectedIconPath, setForeground]);
+
   const setSelectedForegroundPathId = useCallback(
     (
       nextPathId: string,
@@ -960,6 +1019,40 @@ export default function App({
     ],
   );
 
+  const resetAnimationPart = useCallback(() => {
+    handleAnimationClipChange({
+      ...defaultAnimationClip,
+    });
+  }, [handleAnimationClipChange]);
+
+  const resetAnimationAll = useCallback(() => {
+    setAnimationClip((previous) =>
+      normalizeAnimationClipState({
+        ...defaultAnimationClip,
+        targetPathId: currentPathEditor?.enabled ? previous.targetPathId : null,
+      }),
+    );
+
+    if (!selectedIconPath || !currentPathEditor?.enabled) {
+      return;
+    }
+
+    setAnimationPathEditors((previous) => {
+      const current = previous[selectedIconPath];
+      if (!current || Object.keys(current.pathClips).length === 0) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        [selectedIconPath]: {
+          enabled: true,
+          pathClips: {},
+        },
+      };
+    });
+  }, [currentPathEditor?.enabled, selectedIconPath, setAnimationClip]);
+
   const cycleAnimationTarget = useCallback(
     (direction: 1 | -1) => {
       if (!currentPathEditor?.enabled) {
@@ -1034,13 +1127,16 @@ export default function App({
       canBreakApartPaths={Boolean(base.path === selectedIconPath && base.svg)}
       isPathsBrokenApart={Boolean(currentPathEditor?.enabled)}
       onBreakApartPaths={breakApartForegroundPaths}
-      onResetBreakApartPaths={resetBreakApartForegroundPaths}
+      onResetForegroundPart={resetForegroundPart}
+      onResetForegroundAll={resetForegroundAll}
       foregroundPathOptions={currentPathEditor?.options ?? []}
       selectedForegroundPathId={currentPathEditor?.selectedPathId ?? null}
       onCycleForegroundPath={cycleForegroundPath}
       onCycleAnimationTarget={cycleAnimationTarget}
       animationClip={displayAnimationClip}
       onAnimationClipChange={handleAnimationClipChange}
+      onResetAnimationPart={resetAnimationPart}
+      onResetAnimationAll={resetAnimationAll}
     />
   );
 

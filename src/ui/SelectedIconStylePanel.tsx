@@ -44,7 +44,6 @@ import {
   ANIMATION_EASING_OPTIONS,
   ANIMATION_PRESET_OPTIONS,
   isDefaultAnimationClipState,
-  normalizeAnimationClipState,
 } from "../core/animation-clip";
 import {
   isDefaultBackgroundStyle,
@@ -65,7 +64,8 @@ interface SelectedIconStylePanelProps {
   foregroundPathOptions: Array<{ id: string; label: string }>;
   onBackgroundChange: (background: BackgroundStyleState) => void;
   onBreakApartPaths: () => void;
-  onResetBreakApartPaths: () => void;
+  onResetForegroundPart: () => void;
+  onResetForegroundAll: () => void;
   onCycleAnimationTarget: (direction: 1 | -1) => void;
   onCycleForegroundPath: (direction: 1 | -1) => void;
   onDeselectIcon: () => void;
@@ -74,6 +74,8 @@ interface SelectedIconStylePanelProps {
   isPathsBrokenApart: boolean;
   animationClip: AnimationClipState;
   onAnimationClipChange: (patch: Partial<AnimationClipState>) => void;
+  onResetAnimationPart: () => void;
+  onResetAnimationAll: () => void;
 }
 
 const backgroundTypeOptions = [
@@ -306,10 +308,13 @@ export function SelectedIconStylePanel({
   foreground,
   foregroundPathOptions,
   onAnimationClipChange,
+  onResetAnimationAll,
+  onResetAnimationPart,
   onBackgroundChange,
   onBreakApartPaths,
   onCycleAnimationTarget,
-  onResetBreakApartPaths,
+  onResetForegroundAll,
+  onResetForegroundPart,
   onCycleForegroundPath,
   onDeselectIcon,
   onForegroundChange,
@@ -1111,20 +1116,35 @@ export function SelectedIconStylePanel({
                     label="Clip to background shape"
                   />
 
-                  <Button
-                    variant="default"
-                    fullWidth
-                    leftSection={<IconRotate2 size={16} />}
-                    disabled={isForegroundDefault && !isPathsBrokenApart}
-                    onClick={() => {
-                      onForegroundChange(defaultForeground);
-                      if (isPathsBrokenApart) {
-                        onResetBreakApartPaths();
-                      }
-                    }}
-                  >
-                    Reset foreground
-                  </Button>
+                  {isPathsBrokenApart ? (
+                    <Group grow>
+                      <Button
+                        variant="default"
+                        leftSection={<IconRotate2 size={16} />}
+                        disabled={isForegroundDefault}
+                        onClick={onResetForegroundPart}
+                      >
+                        Reset part
+                      </Button>
+                      <Button
+                        variant="default"
+                        leftSection={<IconRotate2 size={16} />}
+                        onClick={onResetForegroundAll}
+                      >
+                        Reset all
+                      </Button>
+                    </Group>
+                  ) : (
+                    <Button
+                      variant="default"
+                      fullWidth
+                      leftSection={<IconRotate2 size={16} />}
+                      disabled={isForegroundDefault}
+                      onClick={() => onForegroundChange(defaultForeground)}
+                    >
+                      Reset foreground
+                    </Button>
+                  )}
                 </Stack>
               </Accordion.Panel>
             </Accordion.Item>
@@ -1249,19 +1269,39 @@ export function SelectedIconStylePanel({
                   </Group>
 
                   <Divider />
-                  <Button
-                    variant="default"
-                    fullWidth
-                    leftSection={<IconRotate2 size={16} />}
-                    disabled={isAnimationDefault}
-                    onClick={() =>
-                      onAnimationClipChange(
-                        normalizeAnimationClipState(defaultAnimationClip),
-                      )
-                    }
-                  >
-                    Reset animation
-                  </Button>
+                  {isPathsBrokenApart ? (
+                    <Group grow>
+                      <Button
+                        variant="default"
+                        leftSection={<IconRotate2 size={16} />}
+                        disabled={isAnimationDefault}
+                        onClick={onResetAnimationPart}
+                      >
+                        Reset part
+                      </Button>
+                      <Button
+                        variant="default"
+                        leftSection={<IconRotate2 size={16} />}
+                        onClick={onResetAnimationAll}
+                      >
+                        Reset all
+                      </Button>
+                    </Group>
+                  ) : (
+                    <Button
+                      variant="default"
+                      fullWidth
+                      leftSection={<IconRotate2 size={16} />}
+                      disabled={isAnimationDefault}
+                      onClick={() =>
+                        onAnimationClipChange({
+                          ...defaultAnimationClip,
+                        })
+                      }
+                    >
+                      Reset animation
+                    </Button>
+                  )}
                 </Stack>
               </Accordion.Panel>
             </Accordion.Item>
