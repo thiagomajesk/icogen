@@ -13,6 +13,10 @@
 - Before non-trivial work, if you have assumptions, ask for confirmation before proceeding
 - When there is a contradiction or missing information, state the confusion and wait for resolution
 - Push back on incorrect, risky, or poorly-scoped instructions and propose safer or simpler alternatives
+- Every bug that is fixed needs an accompanying regression test: 
+    - Step 1: Create a test case that reproduces/ confirms the bug (test passes)
+    - Step 2: Adjust the test expectations so it requires the correct behavior (test fails)
+    - Step 3: Implement the fix by making the now correct expectations work (test passes)
 - Never utilize of clever hacks or keep abstractions around just because of "compatibility". Instead, prefer to create an updated mental model and adjust the implementation to better fit the use cases we need to support. When in doubt, prioritize planning and confirming before proceeding with changes.
 
 ## Tasks
