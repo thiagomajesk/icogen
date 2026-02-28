@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseLocalJson, readLocalJson } from "./local-storage";
+import { parseLocalJson, readLocalJson } from "../../src/utils/local-storage";
 
 interface StorageLike {
   getItem(key: string): string | null;

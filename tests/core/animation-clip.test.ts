@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { defaultAnimationClip } from "./constants";
-import type { AnimationClipState } from "./types";
+import { defaultAnimationClip } from "../../src/core/constants";
+import type { AnimationClipState } from "../../src/core/types";
 import {
   ANIMATION_PRESET_OPTIONS,
   isDefaultAnimationClipState,
   normalizeAnimationClipState,
   resolveAnimationPresetSteps,
-} from "./animation-clip";
+} from "../../src/core/animation-clip";
 
 test("normalizeAnimationClipState returns defaults for invalid input", () => {
   const normalized = normalizeAnimationClipState(null);

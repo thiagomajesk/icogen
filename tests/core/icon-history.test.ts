@@ -11,8 +11,8 @@ import {
   saveRecentIconAccess,
   setCurrentIcon,
   ICON_HISTORY_UPDATED_EVENT,
-} from "./icon-history";
-import { defaultAnimationClip, defaultBackground, defaultForeground } from "./constants";
+} from "../../src/core/icon-history";
+import { defaultAnimationClip, defaultBackground, defaultForeground } from "../../src/core/constants";
 
 interface StorageLike {
   getItem(key: string): string | null;

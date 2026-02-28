@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import "../test/dom-shim";
-import { defaultForeground } from "../core/constants";
-import { buildForegroundStyledSvg, parseSvgBreakout, splitPathDataOnMoveTo } from "./svg-breakout";
+import "../dom-shim";
+import { defaultForeground } from "../../src/core/constants";
+import { buildForegroundStyledSvg, parseSvgBreakout, splitPathDataOnMoveTo } from "../../src/utils/svg-breakout";
 
 test("splitPathDataOnMoveTo keeps single-subpath path untouched", () => {
   const pathData = "M10 10L20 20L30 10Z";

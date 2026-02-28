@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import "../test/dom-shim";
-import { defaultAnimation, defaultBackground, defaultBaseLayer, defaultEffects, defaultForeground, defaultOverlayLayer } from "../core/constants";
+import "../dom-shim";
+import { defaultAnimation, defaultBackground, defaultBaseLayer, defaultEffects, defaultForeground, defaultOverlayLayer } from "../../src/core/constants";
 import {
   buildCompositeSvg,
   buildPreviewTransform,
   parseSvg,
   svgToDataUri,
   wrapWithParentTransforms,
-} from "./svg";
+} from "../../src/utils/svg";
 
 test("svgToDataUri percent-encodes SVG markup", () => {
   const svg = `<svg viewBox="0 0 1 1"><path d="M0 0L1 1" /></svg>`;
