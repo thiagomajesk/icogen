@@ -28,6 +28,7 @@ interface IconLibrarySidebarProps {
   canBreakApartPaths: boolean;
   isPathsBrokenApart: boolean;
   onBreakApartPaths: () => void;
+  onCombinePaths: () => void;
   onResetForegroundPart: () => void;
   onResetForegroundAll: () => void;
   foregroundPathOptions: Array<{ id: string; label: string }>;
@@ -55,6 +56,7 @@ export function IconLibrarySidebar({
   onResetAnimationPart,
   onBackgroundChange,
   onBreakApartPaths,
+  onCombinePaths,
   onResetForegroundAll,
   onResetForegroundPart,
   onCycleAnimationTarget,
@@ -80,6 +82,7 @@ export function IconLibrarySidebar({
         foreground={foreground}
         onBackgroundChange={onBackgroundChange}
         onBreakApartPaths={onBreakApartPaths}
+        onCombinePaths={onCombinePaths}
         onResetForegroundPart={onResetForegroundPart}
         onResetForegroundAll={onResetForegroundAll}
         onDeselectIcon={onDeselectIcon}

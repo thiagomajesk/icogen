@@ -25,11 +25,11 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconCircle,
+  IconComponents,
+  IconComponentsOff,
   IconColorPicker,
   IconFlipHorizontal,
   IconFlipVertical,
-  IconGitBranch,
-  IconInfoCircle,
   IconRotate2,
   IconRotateClockwise2,
   IconZoomIn,
@@ -64,6 +64,7 @@ interface SelectedIconStylePanelProps {
   foregroundPathOptions: Array<{ id: string; label: string }>;
   onBackgroundChange: (background: BackgroundStyleState) => void;
   onBreakApartPaths: () => void;
+  onCombinePaths: () => void;
   onResetForegroundPart: () => void;
   onResetForegroundAll: () => void;
   onCycleAnimationTarget: (direction: 1 | -1) => void;
@@ -312,6 +313,7 @@ export function SelectedIconStylePanel({
   onResetAnimationPart,
   onBackgroundChange,
   onBreakApartPaths,
+  onCombinePaths,
   onCycleAnimationTarget,
   onResetForegroundAll,
   onResetForegroundPart,
@@ -335,6 +337,11 @@ export function SelectedIconStylePanel({
     (foreground.blendOpacity ?? 1) * 100,
   );
   const isAnimationDefault = isDefaultAnimationClipState(animationClip);
+  const foregroundPathCounter = isPathsBrokenApart
+    ? pathCounterLabel(selectedForegroundPathId, foregroundPathOptions)
+    : foregroundPathOptions.length === 0
+      ? "0/0"
+      : `${foregroundPathOptions.length}/${foregroundPathOptions.length}`;
 
   return (
     <Stack h="100%" gap="sm" style={{ minHeight: 0 }}>
@@ -664,58 +671,64 @@ export function SelectedIconStylePanel({
               </Accordion.Control>
               <Accordion.Panel>
                 <Stack gap="sm">
-                  <Group gap={6} wrap="nowrap" align="center">
-                    <IconInfoCircle
-                      size={24}
-                      stroke={1.8}
-                      color="var(--mantine-color-dimmed)"
-                      style={{ flexShrink: 0 }}
-                    />
-                    <Text size="sm" c="dimmed">
-                      Break apart the SVG to customize paths individually
-                    </Text>
-                  </Group>
-
-                  <Group justify="space-between" align="center">
+                  <Group justify="space-between" align="center" wrap="nowrap" gap={6}>
                     <Text size="sm" fw={500}>
                       Paths
                     </Text>
-                    {!isPathsBrokenApart ? (
-                      <Button
-                        variant="default"
-                        size="xs"
-                        w={124}
-                        leftSection={<IconGitBranch size={14} stroke={1.8} />}
-                        disabled={!canBreakApartPaths}
-                        onClick={onBreakApartPaths}
+                    <Group gap={4} wrap="nowrap" align="center" style={{ flexShrink: 0 }}>
+                      <Tooltip
+                        key={isPathsBrokenApart ? "combine-paths-tooltip" : "break-paths-tooltip"}
+                        label={
+                          isPathsBrokenApart
+                            ? "Combine all paths back into one editable shape."
+                            : "Break apart the SVG to customize paths individually."
+                        }
+                        withArrow
+                        position="top-start"
+                        color={ANIMATION_TOOLTIP_COLOR}
                       >
-                        Break apart
-                      </Button>
-                    ) : (
-                      <Group gap={6} wrap="nowrap" w={124} justify="space-between">
+                        <ActionIcon
+                          variant="default"
+                          size="sm"
+                          aria-label={
+                            isPathsBrokenApart
+                              ? "Combine foreground paths"
+                              : "Break apart foreground paths"
+                          }
+                          disabled={!isPathsBrokenApart && !canBreakApartPaths}
+                          onClick={isPathsBrokenApart ? onCombinePaths : onBreakApartPaths}
+                        >
+                          {isPathsBrokenApart ? (
+                            <IconComponents size={16} stroke={1.8} />
+                          ) : (
+                            <IconComponentsOff size={16} stroke={1.8} />
+                          )}
+                        </ActionIcon>
+                      </Tooltip>
+                      <Group gap={4} wrap="nowrap" align="center">
                         <ActionIcon
                           variant="default"
                           size="sm"
                           aria-label="Previous foreground path"
-                          disabled={foregroundPathOptions.length === 0}
+                          disabled={!isPathsBrokenApart || foregroundPathOptions.length === 0}
                           onClick={() => onCycleForegroundPath(-1)}
                         >
                           <IconChevronLeft size={16} />
                         </ActionIcon>
-                        <Text size="sm" c="dimmed" w={52} ta="center">
-                          {pathCounterLabel(selectedForegroundPathId, foregroundPathOptions)}
+                        <Text size="sm" c="dimmed" w={36} ta="center">
+                          {foregroundPathCounter}
                         </Text>
                         <ActionIcon
                           variant="default"
                           size="sm"
                           aria-label="Next foreground path"
-                          disabled={foregroundPathOptions.length === 0}
+                          disabled={!isPathsBrokenApart || foregroundPathOptions.length === 0}
                           onClick={() => onCycleForegroundPath(1)}
                         >
                           <IconChevronRight size={16} />
                         </ActionIcon>
                       </Group>
-                    )}
+                    </Group>
                   </Group>
 
                   <Divider />

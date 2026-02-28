@@ -176,6 +176,27 @@ export default function App({
     return animationPathEditors[selectedIconPath] ?? null;
   }, [animationPathEditors, selectedIconPath]);
 
+  const availableForegroundPathOptions = useMemo<ForegroundPathOption[]>(() => {
+    if (currentPathEditor?.options) {
+      return currentPathEditor.options;
+    }
+
+    if (!selectedIconPath || base.path !== selectedIconPath || !base.svg) {
+      return [];
+    }
+
+    const breakout = parseSvgBreakout(
+      base.svg,
+      breakoutCacheRef.current,
+      parsedSvgCacheRef.current,
+    );
+
+    return breakout.pieces.map((piece) => ({
+      id: piece.id,
+      label: piece.label,
+    }));
+  }, [base.path, base.svg, currentPathEditor?.options, selectedIconPath]);
+
   useEffect(() => {
     setAnimationClip((previous) => {
       if (!previous.targetPathId) {
@@ -1127,9 +1148,10 @@ export default function App({
       canBreakApartPaths={Boolean(base.path === selectedIconPath && base.svg)}
       isPathsBrokenApart={Boolean(currentPathEditor?.enabled)}
       onBreakApartPaths={breakApartForegroundPaths}
+      onCombinePaths={resetBreakApartForegroundPaths}
       onResetForegroundPart={resetForegroundPart}
       onResetForegroundAll={resetForegroundAll}
-      foregroundPathOptions={currentPathEditor?.options ?? []}
+      foregroundPathOptions={availableForegroundPathOptions}
       selectedForegroundPathId={currentPathEditor?.selectedPathId ?? null}
       onCycleForegroundPath={cycleForegroundPath}
       onCycleAnimationTarget={cycleAnimationTarget}
