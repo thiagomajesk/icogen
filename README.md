@@ -62,7 +62,6 @@ Open `http://localhost:5173`.
 - `src/core`: domain models, editor state, and icon services
 - `src/hooks`: UI orchestration hooks
 - `src/ui`: editor UI components and panels
-- `src/utils`: utility helpers
 - `scripts`: icon sync/download scripts
 - `public/icons`: local icon assets
 - `public/icons.lock.json`: local icon metadata lock
