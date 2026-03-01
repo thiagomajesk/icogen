@@ -1,33 +1,33 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { defaultAnimationClip } from "../../src/core/constants";
-import type { AnimationClipState } from "../../src/core/types";
 import {
   ANIMATION_PRESET_OPTIONS,
+  defaultAnimationClip,
   isDefaultAnimationClipState,
   normalizeAnimationClipState,
   resolveAnimationPresetSteps,
-} from "../../src/core/animation-clip";
+} from "../../src/core/editor";
+import type { AnimationClipState } from "../../src/core/editor";
 
 test("normalizeAnimationClipState returns defaults for invalid input", () => {
   const normalized = normalizeAnimationClipState(null);
   assert.deepEqual(normalized, defaultAnimationClip);
 });
 
-test("normalizeAnimationClipState upgrades legacy enabled state", () => {
+test("normalizeAnimationClipState ignores unknown extra fields", () => {
   const normalized = normalizeAnimationClipState(
     { enabled: true } as unknown as Partial<AnimationClipState>,
   );
 
-  assert.equal(normalized.preset, "headShake");
+  assert.equal(normalized.preset, "none");
 });
 
-test("normalizeAnimationClipState maps legacy wiggle preset", () => {
+test("normalizeAnimationClipState rejects unknown presets", () => {
   const normalized = normalizeAnimationClipState({
-    preset: "wiggle" as AnimationClipState["preset"],
+    preset: "custom-unsupported-preset" as AnimationClipState["preset"],
   });
 
-  assert.equal(normalized.preset, "headShake");
+  assert.equal(normalized.preset, "none");
 });
 
 test("resolveAnimationPresetSteps returns null for none", () => {

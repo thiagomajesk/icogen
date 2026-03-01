@@ -2,17 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   clearIconHistory,
-  getCurrentIcon,
   ICON_ACCESSES_UPDATED_EVENT,
   loadIconHistory,
   loadRecentIconAccesses,
   loadIconSettings,
   saveIconSettings,
   saveRecentIconAccess,
-  setCurrentIcon,
   ICON_HISTORY_UPDATED_EVENT,
-} from "../../src/core/icon-history";
-import { defaultAnimationClip, defaultBackground, defaultForeground } from "../../src/core/constants";
+} from "../../src/core/editor";
+import { defaultAnimationClip, defaultBackground, defaultForeground } from "../../src/core/editor";
 
 interface StorageLike {
   getItem(key: string): string | null;
@@ -135,16 +133,6 @@ test("icon history keeps only the latest 10 entries", () => {
   assert.notEqual(history["icon-11"], undefined);
 });
 
-test("current icon can be set, loaded, and cleared", () => {
-  localStorageMock.clear();
-
-  setCurrentIcon("falcon");
-  assert.equal(getCurrentIcon(), "falcon");
-
-  setCurrentIcon(null);
-  assert.equal(getCurrentIcon(), null);
-});
-
 test("saving and clearing history dispatches update events", () => {
   localStorageMock.clear();
 
@@ -224,116 +212,63 @@ test("animation path settings keep an icon entry even with default base settings
   assert.deepEqual(restored?.animationPaths, animationPathSettings);
 });
 
-test("loadIconSettings normalizes legacy surface styles with missing shadow fields", () => {
+test("loadIconSettings requires persisted entries to include animation clip", () => {
   localStorageMock.clear();
-
-  const legacyBackground = {
-    ...defaultBackground,
-    flatColor: "#123456",
-  } as Record<string, unknown>;
-  delete legacyBackground.shadowEnabled;
-  delete legacyBackground.shadowMode;
-  delete legacyBackground.shadowColor;
-  delete legacyBackground.shadowBlur;
-  delete legacyBackground.shadowOffsetX;
-  delete legacyBackground.shadowOffsetY;
-
-  const legacyForeground = {
-    ...defaultForeground,
-    flatColor: "#abcdef",
-  } as Record<string, unknown>;
-  delete legacyForeground.shadowEnabled;
-  delete legacyForeground.shadowMode;
-  delete legacyForeground.shadowColor;
-  delete legacyForeground.shadowBlur;
-  delete legacyForeground.shadowOffsetX;
-  delete legacyForeground.shadowOffsetY;
 
   localStorageMock.setItem(
     "icon-history",
     JSON.stringify({
-      legacy: {
-        background: legacyBackground,
-        foreground: legacyForeground,
+      incomplete: {
+        background: defaultBackground,
+        foreground: defaultForeground,
       },
     }),
   );
 
-  const restored = loadIconSettings("legacy");
-  assert.notEqual(restored, null);
-  assert.equal(restored?.background.flatColor, "#123456");
-  assert.equal(restored?.foreground.flatColor, "#abcdef");
-  assert.equal(restored?.background.shadowEnabled, false);
-  assert.equal(restored?.background.shadowMode, "outer");
-  assert.equal(restored?.foreground.shadowEnabled, false);
-  assert.equal(restored?.foreground.shadowMode, "outer");
+  const restored = loadIconSettings("incomplete");
+  assert.equal(restored, null);
 });
 
-test("loadIconSettings normalizes legacy foreground path styles", () => {
+test("loadIconSettings keeps explicit foreground path styles as stored", () => {
   localStorageMock.clear();
 
-  const legacyPathStyle = {
+  const storedPathStyle = {
     ...defaultForeground,
     flatColor: "#33aaee",
-  } as Record<string, unknown>;
-  delete legacyPathStyle.shadowEnabled;
-  delete legacyPathStyle.shadowMode;
-  delete legacyPathStyle.shadowColor;
-  delete legacyPathStyle.shadowBlur;
-  delete legacyPathStyle.shadowOffsetX;
-  delete legacyPathStyle.shadowOffsetY;
+  };
 
   localStorageMock.setItem(
     "icon-history",
     JSON.stringify({
-      legacy: {
+      current: {
         background: defaultBackground,
         foreground: defaultForeground,
+        animationClip: defaultAnimationClip,
         foregroundPaths: {
           enabled: true,
           selectedPathId: "piece-9",
           pathStyles: {
-            "piece-9": legacyPathStyle,
+            "piece-9": storedPathStyle,
           },
         },
       },
     }),
   );
 
-  const restored = loadIconSettings("legacy");
+  const restored = loadIconSettings("current");
   assert.notEqual(restored?.foregroundPaths, undefined);
-  assert.equal(restored?.foregroundPaths?.pathStyles["piece-9"]?.flatColor, "#33aaee");
-  assert.equal(
-    restored?.foregroundPaths?.pathStyles["piece-9"]?.shadowEnabled,
-    false,
-  );
-  assert.equal(restored?.foregroundPaths?.pathStyles["piece-9"]?.shadowMode, "outer");
+  assert.deepEqual(restored?.foregroundPaths?.pathStyles["piece-9"], storedPathStyle);
 });
 
-test("loadIconSettings adds default animation clip for legacy settings", () => {
+test("loadIconSettings normalizes animation path clips", () => {
   localStorageMock.clear();
   localStorageMock.setItem(
     "icon-history",
     JSON.stringify({
-      legacy: {
+      current: {
         background: defaultBackground,
         foreground: defaultForeground,
-      },
-    }),
-  );
-
-  const restored = loadIconSettings("legacy");
-  assert.deepEqual(restored?.animationClip, defaultAnimationClip);
-});
-
-test("loadIconSettings normalizes legacy animation path clips", () => {
-  localStorageMock.clear();
-  localStorageMock.setItem(
-    "icon-history",
-    JSON.stringify({
-      legacy: {
-        background: defaultBackground,
-        foreground: defaultForeground,
+        animationClip: defaultAnimationClip,
         animationPaths: {
           enabled: true,
           pathClips: {
@@ -358,7 +293,7 @@ test("loadIconSettings normalizes legacy animation path clips", () => {
     }),
   );
 
-  const restored = loadIconSettings("legacy");
+  const restored = loadIconSettings("current");
   assert.notEqual(restored?.animationPaths, undefined);
   assert.deepEqual(restored?.animationPaths?.pathClips["piece-1"], {
     preset: "pulse",
@@ -400,8 +335,12 @@ test("saving icon accesses dispatches update events", () => {
   assert.equal(updateCount, 1);
 });
 
-test("loadRecentIconAccesses migrates legacy key to the new key", () => {
+test("loadRecentIconAccesses reads values from recent-icons key only", () => {
   localStorageMock.clear();
+  localStorageMock.setItem(
+    "recent-icons",
+    JSON.stringify(["delapouite/boar.svg"]),
+  );
   localStorageMock.setItem(
     "recent-icon-accesses",
     JSON.stringify(["lorc/acid-blob.svg", 123, "cathelineau/boar.svg"]),
@@ -409,12 +348,9 @@ test("loadRecentIconAccesses migrates legacy key to the new key", () => {
 
   const recent = loadRecentIconAccesses();
 
-  assert.deepEqual(recent, ["lorc/acid-blob.svg", "cathelineau/boar.svg"]);
-  assert.equal(localStorageMock.getItem("recent-icon-accesses"), null);
-  assert.equal(
-    localStorageMock.getItem("recent-icons"),
-    JSON.stringify(["lorc/acid-blob.svg", "cathelineau/boar.svg"]),
-  );
+  assert.deepEqual(recent, ["delapouite/boar.svg"]);
+  assert.notEqual(localStorageMock.getItem("recent-icon-accesses"), null);
+  assert.notEqual(localStorageMock.getItem("recent-icons"), null);
 });
 
 test("loadRecentIconAccesses returns empty for invalid JSON payload shapes", () => {
@@ -463,15 +399,12 @@ test("icon history APIs return safe fallbacks when storage throws", () => {
   };
 
   assert.deepEqual(loadIconHistory(), {});
-  assert.equal(getCurrentIcon(), null);
   assert.equal(loadIconSettings("any"), null);
   assert.deepEqual(loadRecentIconAccesses(), []);
 
   saveIconSettings("shield", settings);
   saveRecentIconAccess("lorc/acid-blob.svg");
   clearIconHistory();
-  setCurrentIcon("falcon");
-  setCurrentIcon(null);
 
   localStorageMock.getItem = originalGetItem;
   localStorageMock.setItem = originalSetItem;
