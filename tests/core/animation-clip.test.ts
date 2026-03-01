@@ -63,7 +63,7 @@ test("isDefaultAnimationClipState detects non-default preset", () => {
   };
   const targetOnly = {
     ...defaultAnimationClip,
-    targetPathId: "piece-3",
+    targetPathId: "path-3",
   };
 
   assert.equal(isDefaultAnimationClipState(defaultAnimationClip), true);

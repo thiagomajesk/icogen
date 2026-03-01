@@ -44,18 +44,18 @@ test("buildForegroundComposite creates path-styled SVG and consumes foreground w
     pathConfig: {
       enabled: true,
       pathStyles: {
-        "piece-2": noneForeground,
+        "path-2": noneForeground,
       },
     },
     blink: {
-      pathId: "piece-1",
+      pathId: "path-1",
       token: 7,
     },
   });
 
   assert.equal(result.foregroundForComposite, null);
-  assert.match(result.svg, /data-foreground-piece-id="piece-1" data-blink-token="7"/);
+  assert.match(result.svg, /data-foreground-path-id="path-1" data-blink-token="7"/);
   assert.match(result.svg, /fill="#123456"/);
-  assert.match(result.svg, /data-foreground-piece-id="piece-2"/);
+  assert.match(result.svg, /data-foreground-path-id="path-2"/);
   assert.match(result.svg, /fill="none"/);
 });

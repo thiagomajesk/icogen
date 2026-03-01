@@ -497,8 +497,8 @@ test("buildCompositeSvg applies foreground blend mode and opacity", () => {
 test("buildCompositeSvg does not emit identity filter wrappers", () => {
   const base = {
     ...defaultBaseLayer,
-    path: "piece-blend.svg",
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><g data-foreground-piece-id="piece-1" style="mix-blend-mode:screen;opacity:0.4;"><path fill="#000" d="M40 40H472V472H40z"/></g></svg>`,
+    path: "path-blend.svg",
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><g data-foreground-path-id="path-1" style="mix-blend-mode:screen;opacity:0.4;"><path fill="#000" d="M40 40H472V472H40z"/></g></svg>`,
   };
 
   const composite = buildCompositeSvg(

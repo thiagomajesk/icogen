@@ -154,7 +154,7 @@ export interface ParsedSvg {
   defs: string;
 }
 
-export interface PieceCandidate {
+export interface PathCandidate {
   id: string;
   label: string;
   markup: string;

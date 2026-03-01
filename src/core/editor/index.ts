@@ -21,7 +21,7 @@ export type {
   LayerKey,
   LayerState,
   ParsedSvg,
-  PieceCandidate,
+  PathCandidate,
   Preset,
   PreviewTransform,
   StrokeStyle,

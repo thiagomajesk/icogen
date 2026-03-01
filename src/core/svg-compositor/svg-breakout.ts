@@ -6,7 +6,7 @@ import {
 } from "./foreground-style";
 import { parseSvg, wrapWithParentTransforms } from "./svg";
 
-export interface SvgPathPiece {
+export interface SvgPath {
   id: string;
   label: string;
   markup: string;
@@ -16,11 +16,11 @@ export interface ParsedSvgBreakout {
   viewBox: string;
   defs: string;
   inner: string;
-  pieces: SvgPathPiece[];
+  paths: SvgPath[];
 }
 
-const PIECE_HOVER_VIGNETTE_FILTER_ID = "aikon-piece-hover-vignette";
-const PIECE_HOVER_VIGNETTE_FILTER = `<filter id="${PIECE_HOVER_VIGNETTE_FILTER_ID}" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feFlood flood-color="#3a9cff" flood-opacity="0.24" result="blue-veil" /><feComposite in="blue-veil" in2="SourceAlpha" operator="in" result="veil-fill" /><feBlend in="SourceGraphic" in2="veil-fill" mode="screen" result="tinted" /><feGaussianBlur in="SourceAlpha" stdDeviation="6" result="alpha-blur" /><feFlood flood-color="#3a9cff" flood-opacity="0.26" result="blue-glow-color" /><feComposite in="blue-glow-color" in2="alpha-blur" operator="in" result="blue-glow" /><feMerge><feMergeNode in="tinted" /><feMergeNode in="blue-glow" /></feMerge></filter>`;
+const PATH_HOVER_VIGNETTE_FILTER_ID = "aikon-path-hover-vignette";
+const PATH_HOVER_VIGNETTE_FILTER = `<filter id="${PATH_HOVER_VIGNETTE_FILTER_ID}" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feFlood flood-color="#3a9cff" flood-opacity="0.24" result="blue-veil" /><feComposite in="blue-veil" in2="SourceAlpha" operator="in" result="veil-fill" /><feBlend in="SourceGraphic" in2="veil-fill" mode="screen" result="tinted" /><feGaussianBlur in="SourceAlpha" stdDeviation="6" result="alpha-blur" /><feFlood flood-color="#3a9cff" flood-opacity="0.26" result="blue-glow-color" /><feComposite in="blue-glow-color" in2="alpha-blur" operator="in" result="blue-glow" /><feMerge><feMergeNode in="tinted" /><feMergeNode in="blue-glow" /></feMerge></filter>`;
 
 const BREAKOUT_ELEMENT_SELECTOR =
   "path,circle,rect,ellipse,polygon,polyline,line";
@@ -571,7 +571,7 @@ function buildInnerShadowFilterDef(
   ].join("");
 }
 
-function buildPiecePresentationAttributes(
+function buildPathPresentationAttributes(
   style: ForegroundStyleState,
   defsOut: string[],
   nextInnerShadowId: () => string,
@@ -612,7 +612,7 @@ function buildPiecePresentationAttributes(
   };
 }
 
-function parseBreakoutPieces(inner: string): SvgPathPiece[] {
+function parseBreakoutPaths(inner: string): SvgPath[] {
   const parser = new DOMParser();
   const serializer = new XMLSerializer();
   const doc = parser.parseFromString(
@@ -621,10 +621,10 @@ function parseBreakoutPieces(inner: string): SvgPathPiece[] {
   );
   const nodes = Array.from(doc.querySelectorAll(BREAKOUT_ELEMENT_SELECTOR));
 
-  let pieceIndex = 0;
+  let pathIndex = 0;
   let pathNodeIndex = 0;
   const primitiveIndexByTag = new Map<string, number>();
-  const pieces: SvgPathPiece[] = [];
+  const paths: SvgPath[] = [];
 
   for (const node of nodes) {
     const tagName = node.tagName.toLowerCase();
@@ -639,9 +639,9 @@ function parseBreakoutPieces(inner: string): SvgPathPiece[] {
         for (let index = 0; index < subpaths.length; index += 1) {
           const clone = node.cloneNode(true) as Element;
           clone.setAttribute("d", subpaths[index]);
-          pieceIndex += 1;
-          pieces.push({
-            id: `piece-${pieceIndex}`,
+          pathIndex += 1;
+          paths.push({
+            id: `path-${pathIndex}`,
             label: sourceId
               ? `${sourceId} ${index + 1}`
               : `Path ${pathNodeIndex}.${index + 1}`,
@@ -651,9 +651,9 @@ function parseBreakoutPieces(inner: string): SvgPathPiece[] {
         continue;
       }
 
-      pieceIndex += 1;
-      pieces.push({
-        id: `piece-${pieceIndex}`,
+      pathIndex += 1;
+      paths.push({
+        id: `path-${pathIndex}`,
         label: sourceId || `Path ${pathNodeIndex}`,
         markup: wrapWithParentTransforms(node, serializer),
       });
@@ -662,15 +662,15 @@ function parseBreakoutPieces(inner: string): SvgPathPiece[] {
 
     const primitiveIndex = (primitiveIndexByTag.get(tagName) ?? 0) + 1;
     primitiveIndexByTag.set(tagName, primitiveIndex);
-    pieceIndex += 1;
-    pieces.push({
-      id: `piece-${pieceIndex}`,
+    pathIndex += 1;
+    paths.push({
+      id: `path-${pathIndex}`,
       label: sourceId || `${toTitleCase(tagName)} ${primitiveIndex}`,
       markup: wrapWithParentTransforms(node, serializer),
     });
   }
 
-  return pieces;
+  return paths;
 }
 
 export function parseSvgBreakout(
@@ -688,7 +688,7 @@ export function parseSvgBreakout(
     viewBox: parsed.viewBox,
     defs: unwrapDefs(parsed.defs),
     inner: parsed.inner,
-    pieces: parseBreakoutPieces(parsed.inner),
+    paths: parseBreakoutPaths(parsed.inner),
   };
 
   parsedCache.set(svg, breakout);
@@ -701,30 +701,30 @@ export function buildForegroundStyledSvg(
   pathForegroundStyles: Record<string, ForegroundStyleState>,
   blink: { pathId: string | null; token: number } | null = null,
 ): string {
-  const defs: string[] = [PIECE_HOVER_VIGNETTE_FILTER];
+  const defs: string[] = [PATH_HOVER_VIGNETTE_FILTER];
   let gradientCounter = 0;
   const nextGradientId = () => {
     gradientCounter += 1;
-    return `fg-piece-gradient-${gradientCounter}`;
+    return `fg-path-gradient-${gradientCounter}`;
   };
   let innerShadowCounter = 0;
   const nextInnerShadowId = () => {
     innerShadowCounter += 1;
-    return `fg-piece-inner-shadow-${innerShadowCounter}`;
+    return `fg-path-inner-shadow-${innerShadowCounter}`;
   };
-  const staticPieces: string[] = [];
-  let blinkingPieceMarkup: string | null = null;
+  const staticPaths: string[] = [];
+  let blinkingPathMarkup: string | null = null;
 
-  for (const piece of breakout.pieces) {
-    const style = pathForegroundStyles[piece.id] ?? defaultForeground;
+  for (const path of breakout.paths) {
+    const style = pathForegroundStyles[path.id] ?? defaultForeground;
     const paintApplied = applyForegroundPaintToMarkup(
-      piece.markup,
+      path.markup,
       style,
       defs,
       nextGradientId,
     );
     const transform = buildCenteredForegroundTransform(style);
-    const piecePresentation = buildPiecePresentationAttributes(
+    const pathPresentation = buildPathPresentationAttributes(
       style,
       defs,
       nextInnerShadowId,
@@ -733,26 +733,26 @@ export function buildForegroundStyledSvg(
       ? `<g transform="${transform}">${paintApplied}</g>`
       : paintApplied;
 
-    if (blink?.pathId && blink.pathId === piece.id) {
-      blinkingPieceMarkup = `<g data-foreground-piece-id="${piece.id}" data-blink-token="${blink.token}"><animate attributeName="opacity" values="1;0.15;1;0.15;1" dur="0.75s" repeatCount="1" /><g${piecePresentation.filterAttr}${piecePresentation.styleAttr}>${transformedMarkup}</g></g>`;
+    if (blink?.pathId && blink.pathId === path.id) {
+      blinkingPathMarkup = `<g data-foreground-path-id="${path.id}" data-blink-token="${blink.token}"><animate attributeName="opacity" values="1;0.15;1;0.15;1" dur="0.75s" repeatCount="1" /><g${pathPresentation.filterAttr}${pathPresentation.styleAttr}>${transformedMarkup}</g></g>`;
       continue;
     }
 
-    staticPieces.push(
-      `<g data-foreground-piece-id="${piece.id}"${piecePresentation.filterAttr}${piecePresentation.styleAttr}>${transformedMarkup}</g>`,
+    staticPaths.push(
+      `<g data-foreground-path-id="${path.id}"${pathPresentation.filterAttr}${pathPresentation.styleAttr}>${transformedMarkup}</g>`,
     );
   }
 
-  // Render the blinking piece last so it stays visible even for overlapping shapes.
-  if (blinkingPieceMarkup) {
-    staticPieces.push(blinkingPieceMarkup);
+  // Render the blinking path last so it stays visible even for overlapping shapes.
+  if (blinkingPathMarkup) {
+    staticPaths.push(blinkingPathMarkup);
   }
 
-  const piecesMarkup = staticPieces.join("");
+  const pathsMarkup = staticPaths.join("");
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="${breakout.viewBox}">
   <defs>${breakout.defs}${defs.join("")}</defs>
-  ${piecesMarkup}
+  ${pathsMarkup}
 </svg>`.trim();
 }

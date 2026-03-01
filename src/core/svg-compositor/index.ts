@@ -6,7 +6,7 @@ export {
   buildPreviewTransform,
 } from "./svg";
 
-export type { SvgPathPiece, ParsedSvgBreakout } from "./svg-breakout";
+export type { SvgPath, ParsedSvgBreakout } from "./svg-breakout";
 export {
   splitPathDataOnMoveTo,
   parseSvgBreakout,

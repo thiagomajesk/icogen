@@ -189,9 +189,9 @@ export default function App({
       parsedSvgCacheRef.current,
     );
 
-    return breakout.pieces.map((piece) => ({
-      id: piece.id,
-      label: piece.label,
+    return breakout.paths.map((path) => ({
+      id: path.id,
+      label: path.label,
     }));
   }, [base.path, base.svg, currentPathEditor?.options, selectedIconPath]);
 
@@ -482,13 +482,13 @@ export default function App({
       breakoutCacheRef.current,
       parsedSvgCacheRef.current,
     );
-    if (breakout.pieces.length === 0) {
+    if (breakout.paths.length === 0) {
       return;
     }
 
-    const options = breakout.pieces.map((piece) => ({
-      id: piece.id,
-      label: piece.label,
+    const options = breakout.paths.map((path) => ({
+      id: path.id,
+      label: path.label,
     }));
     const optionIds = new Set(options.map((option) => option.id));
 
@@ -666,16 +666,16 @@ export default function App({
       breakoutCacheRef.current,
       parsedSvgCacheRef.current,
     );
-    if (breakout.pieces.length === 0) {
-      setStatusMessage("No editable pieces were found in this icon.", true);
+    if (breakout.paths.length === 0) {
+      setStatusMessage("No editable paths were found in this icon.", true);
       return;
     }
 
     setForegroundPathEditors((previous) => {
       const current = previous[selectedIconPath];
-      const options = breakout.pieces.map((piece) => ({
-        id: piece.id,
-        label: piece.label,
+      const options = breakout.paths.map((path) => ({
+        id: path.id,
+        label: path.label,
       }));
       const optionIds = new Set(options.map((option) => option.id));
       const selectedPathId =
@@ -702,7 +702,7 @@ export default function App({
 
     setAnimationPathEditors((previous) => {
       const current = previous[selectedIconPath];
-      const optionIds = new Set(breakout.pieces.map((piece) => piece.id));
+      const optionIds = new Set(breakout.paths.map((path) => path.id));
       const pathClips: Record<string, AnimationClipState> = {};
 
       for (const [pathId, clip] of Object.entries(current?.pathClips ?? {})) {

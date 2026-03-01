@@ -18,7 +18,7 @@ interface ThreePreviewProps {
   readOnly?: boolean;
 }
 
-const PATH_SELECTOR = "[data-foreground-piece-id]";
+const PATH_SELECTOR = "[data-foreground-path-id]";
 const FOREGROUND_ROOT_SELECTOR = '[data-foreground-root="true"]';
 
 function resetAnimatedTransforms(host: HTMLDivElement): void {
@@ -92,20 +92,20 @@ export function ThreePreview({
     ).matches;
 
     const foregroundRoot = host.querySelector(FOREGROUND_ROOT_SELECTOR);
-    const pathPieces = host.querySelectorAll(PATH_SELECTOR);
+    const pathElements = host.querySelectorAll(PATH_SELECTOR);
 
     if (foregroundRoot instanceof SVGElement) {
       foregroundRoot.style.transformOrigin = "center";
       foregroundRoot.style.transformBox = "fill-box";
     }
 
-    for (const piece of pathPieces) {
-      if (!(piece instanceof SVGElement)) {
+    for (const pathElement of pathElements) {
+      if (!(pathElement instanceof SVGElement)) {
         continue;
       }
 
-      piece.style.transformOrigin = "center";
-      piece.style.transformBox = "fill-box";
+      pathElement.style.transformOrigin = "center";
+      pathElement.style.transformBox = "fill-box";
     }
 
     if (prefersReducedMotion || !(foregroundRoot instanceof SVGElement)) {
@@ -129,7 +129,7 @@ export function ThreePreview({
       }
 
       const target = clip.targetPathId
-        ? host.querySelector(`[data-foreground-piece-id="${clip.targetPathId}"]`)
+        ? host.querySelector(`[data-foreground-path-id="${clip.targetPathId}"]`)
         : foregroundRoot;
       if (!(target instanceof SVGElement)) {
         continue;
@@ -202,12 +202,12 @@ export function ThreePreview({
       return null;
     }
 
-    const piece = target.closest(PATH_SELECTOR);
-    if (!piece) {
+    const path = target.closest(PATH_SELECTOR);
+    if (!path) {
       return null;
     }
 
-    return piece.getAttribute("data-foreground-piece-id");
+    return path.getAttribute("data-foreground-path-id");
   }, []);
 
   const handleMouseMove = useCallback(

@@ -83,9 +83,9 @@ const settings = {
 
 const foregroundPathSettings = {
   enabled: true,
-  selectedPathId: "piece-2",
+  selectedPathId: "path-2",
   pathStyles: {
-    "piece-2": {
+    "path-2": {
       ...defaultForeground,
       flatColor: "#44aaff",
     },
@@ -95,7 +95,7 @@ const foregroundPathSettings = {
 const animationPathSettings = {
   enabled: true,
   pathClips: {
-    "piece-2": {
+    "path-2": {
       preset: "bounce" as const,
       durationMs: 900,
       ease: "inOutSine",
@@ -174,7 +174,7 @@ test("foreground path settings are persisted and restored", () => {
   assert.deepEqual(restored?.foregroundPaths, foregroundPathSettings);
 });
 
-test("foreground path settings keep an icon entry even with default surface styles", () => {
+test("foreground path settings keep an icon entry even with default styles", () => {
   localStorageMock.clear();
 
   saveIconSettings("wyrm", {
@@ -246,9 +246,9 @@ test("loadIconSettings keeps explicit foreground path styles as stored", () => {
         animationClip: defaultAnimationClip,
         foregroundPaths: {
           enabled: true,
-          selectedPathId: "piece-9",
+          selectedPathId: "path-9",
           pathStyles: {
-            "piece-9": storedPathStyle,
+            "path-9": storedPathStyle,
           },
         },
       },
@@ -257,7 +257,7 @@ test("loadIconSettings keeps explicit foreground path styles as stored", () => {
 
   const restored = loadIconSettings("current");
   assert.notEqual(restored?.foregroundPaths, undefined);
-  assert.deepEqual(restored?.foregroundPaths?.pathStyles["piece-9"], storedPathStyle);
+  assert.deepEqual(restored?.foregroundPaths?.pathStyles["path-9"], storedPathStyle);
 });
 
 test("loadIconSettings normalizes animation path clips", () => {
@@ -272,15 +272,15 @@ test("loadIconSettings normalizes animation path clips", () => {
         animationPaths: {
           enabled: true,
           pathClips: {
-            "piece-1": {
+            "path-1": {
               preset: "pulse",
               durationMs: 745.2,
               ease: "",
               loop: true,
               alternate: true,
-              targetPathId: "piece-1",
+              targetPathId: "path-1",
             },
-            "piece-2": {
+            "path-2": {
               preset: "none",
               durationMs: 1200,
               ease: "inOutSine",
@@ -295,14 +295,14 @@ test("loadIconSettings normalizes animation path clips", () => {
 
   const restored = loadIconSettings("current");
   assert.notEqual(restored?.animationPaths, undefined);
-  assert.deepEqual(restored?.animationPaths?.pathClips["piece-1"], {
+  assert.deepEqual(restored?.animationPaths?.pathClips["path-1"], {
     preset: "pulse",
     durationMs: 745,
     ease: "inOutSine",
     loop: true,
     alternate: true,
   });
-  assert.equal(restored?.animationPaths?.pathClips["piece-2"], undefined);
+  assert.equal(restored?.animationPaths?.pathClips["path-2"], undefined);
 });
 
 test("recent icon accesses keep latest 100 unique entries", () => {

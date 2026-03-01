@@ -58,8 +58,8 @@ function normalizeForegroundPathSettings(
   }
 
   const pathStyles = Object.fromEntries(
-    Object.entries(foregroundPaths.pathStyles ?? {}).map(([pieceId, style]) => [
-      pieceId,
+    Object.entries(foregroundPaths.pathStyles ?? {}).map(([pathId, style]) => [
+      pathId,
       style,
     ]),
   );
@@ -79,21 +79,21 @@ function normalizeAnimationPathSettings(
   }
 
   const pathClips = Object.fromEntries(
-    Object.entries(animationPaths.pathClips ?? {}).flatMap(([pieceId, clip]) => {
-      if (!pieceId) {
+    Object.entries(animationPaths.pathClips ?? {}).flatMap(([pathId, clip]) => {
+      if (!pathId) {
         return [];
       }
 
       const normalized = normalizeAnimationClipState({
         ...(clip as Partial<AnimationClipState>),
-        targetPathId: pieceId,
+        targetPathId: pathId,
       });
       if (normalized.preset === "none") {
         return [];
       }
 
       const { targetPathId: _ignoredTargetPathId, ...config } = normalized;
-      return [[pieceId, config satisfies AnimationClipConfig]];
+      return [[pathId, config satisfies AnimationClipConfig]];
     }),
   );
 

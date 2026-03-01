@@ -39,22 +39,16 @@ import {
   defaultAnimationClip,
   defaultBackground,
   defaultForeground,
-} from "../core/constants";
-import {
   ANIMATION_EASING_OPTIONS,
   ANIMATION_PRESET_OPTIONS,
   isDefaultAnimationClipState,
-} from "../core/animation-clip";
-import {
   isDefaultBackgroundStyle,
   isDefaultForegroundStyle,
-} from "../core/style-state";
-import type {
-  AnimationClipState,
-  AnimationPresetValue,
-  BackgroundStyleState,
-  ForegroundStyleState,
-} from "../core/types";
+  type AnimationClipState,
+  type AnimationPresetValue,
+  type BackgroundStyleState,
+  type ForegroundStyleState,
+} from "../core/editor";
 import { STYLE_SHAPE_OPTIONS, StyleShapeIcon } from "./style-shapes";
 
 interface SelectedIconStylePanelProps {

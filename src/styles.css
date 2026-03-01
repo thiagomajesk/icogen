@@ -169,16 +169,16 @@ body {
   display: block;
 }
 
-.ps-preview-svg-host--interactive [data-foreground-piece-id] {
+.ps-preview-svg-host--interactive [data-foreground-path-id] {
   cursor: pointer;
 }
 
-.ps-preview-svg-host--interactive [data-foreground-piece-id]:hover {
-  filter: url(#aikon-piece-hover-vignette);
+.ps-preview-svg-host--interactive [data-foreground-path-id]:hover {
+  filter: url(#aikon-path-hover-vignette);
 }
 
 .ps-preview-svg-host--interactive
-  [data-foreground-piece-id]:hover
+  [data-foreground-path-id]:hover
   :is(path, circle, rect, ellipse, polygon, polyline, line) {
   stroke: var(--mantine-color-blue-5);
   stroke-opacity: 1;
