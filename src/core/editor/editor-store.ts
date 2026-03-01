@@ -20,7 +20,6 @@ import {
   type ForegroundPathSettings,
   saveIconSettings,
   saveRecentIconAccess,
-  setCurrentIcon,
   loadIconSettings,
 } from "./icon-history";
 
@@ -104,14 +103,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setStatus: (status) => set({ status }),
   setCustomIcons: (customIcons) => set({ customIcons }),
   setSelectedIconPath: (selectedIconPath, name = null) => {
-    // Legacy key is no longer used by routing/state and should not persist.
-    setCurrentIcon(null);
     set({ selectedIconPath, selectedIconName: name });
 
     if (selectedIconPath) {
       saveRecentIconAccess(selectedIconPath);
     }
-    
+
     // Load settings for newly selected icon
     if (name) {
       get().loadIconSettingsFromHistory(name);
@@ -144,7 +141,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       set({
         background: settings.background,
         foreground: settings.foreground,
-        animationClip: settings.animationClip ?? defaultAnimationClip,
+        animationClip: settings.animationClip,
       });
     }
   },

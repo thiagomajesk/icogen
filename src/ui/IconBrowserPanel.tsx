@@ -8,9 +8,9 @@ import {
   Text,
 } from "@mantine/core";
 import { IconChevronLeft, IconChevronRight, IconLayoutGrid } from "@tabler/icons-react";
-import type { CustomIcon, IconMeta } from "../core/types";
-import { getLocalIconPath } from "../core/icon-client";
-import { svgToDataUri } from "../utils/svg";
+import type { CustomIcon, IconMeta } from "../core/editor";
+import { getLocalIconPath } from "../core/icon-catalog";
+import { svgToDataUri } from "../core/svg-compositor";
 import { IconPreviewTile } from "./IconPreviewTile";
 import { SearchInput } from "./SearchInput";
 

@@ -1,4 +1,4 @@
-import type { BackgroundShape } from "../core/types";
+import type { BackgroundShape } from "../core/editor";
 
 export interface StyleShapeOption {
   value: BackgroundShape;

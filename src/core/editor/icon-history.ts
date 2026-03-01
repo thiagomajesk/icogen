@@ -12,14 +12,11 @@ import {
   isDefaultAnimationClipState,
   normalizeAnimationClipState,
 } from "./animation-clip";
-import { defaultAnimationClip, defaultBackground, defaultForeground } from "./constants";
-import { parseLocalJson, readLocalJson } from "../utils/local-storage";
+import { parseLocalJson, readLocalJson } from "../platform";
 
 const ICON_HISTORY_KEY = "icon-history";
-const CURRENT_ICON_KEY = "current-icon";
 const MAX_HISTORY_SIZE = 10;
 const RECENT_ICONS_KEY = "recent-icons";
-const LEGACY_RECENT_ICON_ACCESSES_KEY = "recent-icon-accesses";
 const MAX_RECENT_ICON_ACCESSES = 100;
 export const ICON_HISTORY_UPDATED_EVENT = "icon-history-updated";
 export const ICON_ACCESSES_UPDATED_EVENT = "icon-accesses-updated";
@@ -39,7 +36,7 @@ export interface IconSettings {
   background: BackgroundStyleState;
   foreground: ForegroundStyleState;
   foregroundPaths?: ForegroundPathSettings;
-  animationClip?: AnimationClipState;
+  animationClip: AnimationClipState;
   animationPaths?: AnimationPathSettings;
 }
 
@@ -53,16 +50,6 @@ function notifyIconAccessesUpdated(): void {
   window.dispatchEvent(new Event(ICON_ACCESSES_UPDATED_EVENT));
 }
 
-function normalizeSurfaceStyle<T extends object>(
-  style: T | null | undefined,
-  defaults: T,
-): T {
-  return {
-    ...defaults,
-    ...(style ?? {}),
-  };
-}
-
 function normalizeForegroundPathSettings(
   foregroundPaths: ForegroundPathSettings | undefined,
 ): ForegroundPathSettings | undefined {
@@ -73,7 +60,7 @@ function normalizeForegroundPathSettings(
   const pathStyles = Object.fromEntries(
     Object.entries(foregroundPaths.pathStyles ?? {}).map(([pieceId, style]) => [
       pieceId,
-      normalizeSurfaceStyle(style, defaultForeground),
+      style,
     ]),
   );
 
@@ -139,9 +126,7 @@ export function saveIconSettings(
   try {
     const history = loadIconHistory();
     const hasForegroundPathSettings = Boolean(settings.foregroundPaths?.enabled);
-    const normalizedAnimationClip = normalizeAnimationClipState(
-      settings.animationClip ?? defaultAnimationClip,
-    );
+    const normalizedAnimationClip = normalizeAnimationClipState(settings.animationClip);
     const normalizedAnimationPaths = normalizeAnimationPathSettings(
       settings.animationPaths,
     );
@@ -190,39 +175,12 @@ export function saveIconSettings(
 }
 
 /**
- * Persists which icon is currently selected in the editor.
- */
-export function setCurrentIcon(iconName: string | null): void {
-  try {
-    if (iconName === null) {
-      localStorage.removeItem(CURRENT_ICON_KEY);
-    } else {
-      localStorage.setItem(CURRENT_ICON_KEY, iconName);
-    }
-  } catch (error) {
-    console.error("Failed to set current icon:", error);
-  }
-}
-
-/**
- * Returns the icon currently selected by the user, or null when none exists.
- */
-export function getCurrentIcon(): string | null {
-  try {
-    return localStorage.getItem(CURRENT_ICON_KEY);
-  } catch (error) {
-    console.error("Failed to get current icon:", error);
-    return null;
-  }
-}
-
-/**
  * Loads saved settings for a specific icon name.
  */
 export function loadIconSettings(iconName: string): IconSettings | null {
   const history = loadIconHistory();
   const settings = history[iconName];
-  if (!settings) {
+  if (!settings || !settings.animationClip) {
     return null;
   }
 
@@ -235,8 +193,8 @@ export function loadIconSettings(iconName: string): IconSettings | null {
 
   return {
     ...settings,
-    background: normalizeSurfaceStyle(settings.background, defaultBackground),
-    foreground: normalizeSurfaceStyle(settings.foreground, defaultForeground),
+    background: settings.background,
+    foreground: settings.foreground,
     animationClip: normalizeAnimationClipState(settings.animationClip),
     ...(settings.foregroundPaths
       ? { foregroundPaths: normalizedForegroundPaths }
@@ -251,9 +209,7 @@ export function loadIconSettings(iconName: string): IconSettings | null {
 export function clearIconHistory(): void {
   try {
     localStorage.removeItem(ICON_HISTORY_KEY);
-    localStorage.removeItem(CURRENT_ICON_KEY);
     localStorage.removeItem(RECENT_ICONS_KEY);
-    localStorage.removeItem(LEGACY_RECENT_ICON_ACCESSES_KEY);
     notifyHistoryUpdated();
     notifyIconAccessesUpdated();
   } catch (error) {
@@ -267,15 +223,12 @@ export function clearIconHistory(): void {
 export function loadRecentIconAccesses(): string[] {
   try {
     const stored = localStorage.getItem(RECENT_ICONS_KEY);
-    const legacyStored = localStorage.getItem(LEGACY_RECENT_ICON_ACCESSES_KEY);
-
-    const source = stored ?? legacyStored;
-    if (!source) {
+    if (!stored) {
       return [];
     }
 
     const parsed = parseLocalJson<unknown[]>(
-      source,
+      stored,
       [],
       "Failed to load recent icon accesses:",
     );
@@ -286,11 +239,6 @@ export function loadRecentIconAccesses(): string[] {
     const normalized = parsed
       .filter((value): value is string => typeof value === "string")
       .slice(0, MAX_RECENT_ICON_ACCESSES);
-
-    if (!stored && legacyStored) {
-      localStorage.setItem(RECENT_ICONS_KEY, JSON.stringify(normalized));
-      localStorage.removeItem(LEGACY_RECENT_ICON_ACCESSES_KEY);
-    }
 
     return normalized;
   } catch (error) {

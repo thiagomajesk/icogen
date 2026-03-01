@@ -1,7 +1,7 @@
 import { useCallback, useRef } from "react";
-import { fetchLocalIconSvg } from "../core/icon-client";
-import type { CustomIcon, LayerKey, LayerState } from "../core/types";
-import { iconLabel } from "../utils/format";
+import { fetchLocalIconSvg } from "../core/icon-catalog";
+import type { CustomIcon, LayerKey, LayerState } from "../core/editor";
+import { iconLabel } from "../core/platform";
 
 interface UseIconAssignmentParams {
   base: LayerState;

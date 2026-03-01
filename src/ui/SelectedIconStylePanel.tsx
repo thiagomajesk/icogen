@@ -253,6 +253,7 @@ function LabeledSlider({
         </Text>
       </Group>
       <Slider
+        aria-label={label}
         label={null}
         min={min}
         max={max}
@@ -384,7 +385,7 @@ export function SelectedIconStylePanel({
                 <Text fw={600}>Background</Text>
               </Accordion.Control>
               <Accordion.Panel>
-                <Stack gap="sm">
+                <Stack gap="sm" data-testid="background-settings">
                   <Select
                     label="Fill"
                     variant="filled"
@@ -670,7 +671,7 @@ export function SelectedIconStylePanel({
                 <Text fw={600}>Foreground</Text>
               </Accordion.Control>
               <Accordion.Panel>
-                <Stack gap="sm">
+                <Stack gap="sm" data-testid="foreground-settings">
                   <Group justify="space-between" align="center" wrap="nowrap" gap={6}>
                     <Text size="sm" fw={500}>
                       Paths
@@ -1169,7 +1170,7 @@ export function SelectedIconStylePanel({
                 <Text fw={600}>Animation</Text>
               </Accordion.Control>
               <Accordion.Panel>
-                <Stack gap="sm">
+                <Stack gap="sm" data-testid="animation-settings">
                   <Group justify="space-between" align="center">
                     <Text size="sm" fw={500}>
                       Target

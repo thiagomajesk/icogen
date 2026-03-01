@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { iconLabel, parseNumber, slugify } from "../../src/utils/format";
+import { iconLabel, parseNumber, slugify } from "../../src/core/platform";
 
 test("parseNumber returns fallback for invalid values", () => {
   assert.equal(parseNumber("42"), 42);

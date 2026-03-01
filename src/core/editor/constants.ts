@@ -7,9 +7,6 @@ import {
   LayerState,
 } from "./types";
 
-export const PAGE_SIZE = 60;
-export const PAGE_CACHE_SIZE = 24;
-
 const defaultStrokeColor = "#000000";
 
 export const defaultBaseLayer: LayerState = {

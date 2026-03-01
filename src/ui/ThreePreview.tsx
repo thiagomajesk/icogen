@@ -4,9 +4,9 @@ import { createTimeline } from "animejs";
 import {
   normalizeAnimationClipState,
   resolveAnimationPresetSteps,
-} from "../core/animation-clip";
-import { defaultAnimationClip } from "../core/constants";
-import type { AnimationClipState, PreviewTransform } from "../core/types";
+  defaultAnimationClip,
+} from "../core/editor";
+import type { AnimationClipState, PreviewTransform } from "../core/editor";
 
 interface ThreePreviewProps {
   svg: string;

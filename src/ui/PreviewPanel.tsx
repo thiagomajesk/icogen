@@ -12,26 +12,29 @@ import {
   Text,
 } from "@mantine/core";
 import { IconHistory, IconInfoCircle, IconTemplate } from "@tabler/icons-react";
+import {
+  ICON_HISTORY_UPDATED_EVENT,
+  loadIconHistory,
+  defaultAnimation,
+  defaultBaseLayer,
+  defaultEffects,
+  defaultOverlayLayer,
+} from "../core/editor";
 import type {
   AnimationClipState,
   CustomIcon,
   LayerState,
   ParsedSvg,
   PreviewTransform,
-} from "../core/types";
+} from "../core/editor";
 import { ThreePreview } from "./ThreePreview";
-import { ICON_HISTORY_UPDATED_EVENT, loadIconHistory } from "../core/icon-history";
-import { buildCompositeSvg } from "../utils/svg";
-import { type ParsedSvgBreakout } from "../utils/svg-breakout";
-import { buildForegroundComposite } from "../utils/foreground-composite";
-import { fetchLocalIconSvg } from "../core/icon-client";
-import { IconPreviewTile } from "./IconPreviewTile";
 import {
-  defaultAnimation,
-  defaultBaseLayer,
-  defaultEffects,
-  defaultOverlayLayer,
-} from "../core/constants";
+  buildCompositeSvg,
+  buildForegroundComposite,
+} from "../core/svg-compositor";
+import type { ParsedSvgBreakout } from "../core/svg-compositor";
+import { fetchLocalIconSvg } from "../core/icon-catalog";
+import { IconPreviewTile } from "./IconPreviewTile";
 
 interface PreviewPanelProps {
   compositeSvg: string;

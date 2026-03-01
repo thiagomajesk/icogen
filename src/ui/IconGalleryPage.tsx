@@ -22,9 +22,9 @@ import {
   IconInfoCircle,
   IconLayoutGrid,
 } from "@tabler/icons-react";
-import type { IconLockEntry } from "../core/icon-client";
-import { getLocalIconPath } from "../core/icon-client";
-import { iconLabel } from "../utils/format";
+import type { IconLockEntry } from "../core/icon-catalog";
+import { getLocalIconPath } from "../core/icon-catalog";
+import { iconLabel } from "../core/platform";
 import { IconPreviewTile } from "./IconPreviewTile";
 import { SearchInput } from "./SearchInput";
 

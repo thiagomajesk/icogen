@@ -14,8 +14,14 @@ export interface IconsLockFile {
 }
 
 const LOCK_FILE_URL = "/icons.lock.json";
+export const ICON_CATALOG_PAGE_SIZE = 60;
+export const ICON_CATALOG_PAGE_CACHE_SIZE = 24;
 
 let cachedLockFile: IconsLockFile | null = null;
+
+export function clearIconsLockFileCache(): void {
+  cachedLockFile = null;
+}
 
 export async function loadIconsLockFile(): Promise<IconsLockFile> {
   if (cachedLockFile) {
@@ -57,7 +63,7 @@ export async function fetchLocalIconsPage(
   query?: string,
 ): Promise<LocalIconPagePayload> {
   const lockFile = await loadIconsLockFile();
-  
+
   let filteredIcons = lockFile.icons;
 
   if (query) {

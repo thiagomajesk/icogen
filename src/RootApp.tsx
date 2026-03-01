@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Center, Loader, Stack, Text } from "@mantine/core";
 import App from "./App";
-import type { IconLockEntry } from "./core/icon-client";
-import { loadIconsLockFile } from "./core/icon-client";
-import { buildEditorPath, parseAppRoute, routeToIconPath } from "./core/routes";
+import type { IconLockEntry } from "./core/icon-catalog";
+import { loadIconsLockFile } from "./core/icon-catalog";
+import { buildEditorPath, parseAppRoute, routeToIconPath } from "./core/navigation";
 import { IconGalleryPage } from "./ui/IconGalleryPage";
-import { useEditorStore } from "./core/editorStore";
+import { useEditorStore } from "./core/editor";
 
 interface SelectedEditorIcon {
   path: string;

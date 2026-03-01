@@ -1,4 +1,4 @@
-import {
+import type {
   AnimationState,
   BackgroundStyleState,
   EffectsState,
@@ -6,8 +6,8 @@ import {
   LayerState,
   ParsedSvg,
   PreviewTransform,
-  type SurfaceStyleState,
-} from "../core/types";
+  SurfaceStyleState,
+} from "../editor";
 import {
   buildForegroundGradientDef,
   buildForegroundTransformOperations,

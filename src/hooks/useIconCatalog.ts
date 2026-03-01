@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { PAGE_CACHE_SIZE, PAGE_SIZE } from "../core/constants";
-import { fetchLocalIconsPage, getLocalIconStats } from "../core/icon-client";
+import {
+  fetchLocalIconsPage,
+  getLocalIconStats,
+  ICON_CATALOG_PAGE_CACHE_SIZE,
+  ICON_CATALOG_PAGE_SIZE,
+} from "../core/icon-catalog";
 import type {
   CustomIcon,
   IconAvailability,
   IconMeta,
   IconPagePayload,
-} from "../core/types";
+} from "../core/editor";
 
 interface UseIconCatalogParams {
   customIcons: CustomIcon[];
@@ -49,12 +53,12 @@ export function useIconCatalog({
   const pageCacheRef = useRef<Map<string, IconPagePayload>>(new Map());
 
   const pageKey = useCallback((targetPage: number, query: string): string => {
-    return `${query}|${targetPage}|${PAGE_SIZE}`;
+    return `${query}|${targetPage}|${ICON_CATALOG_PAGE_SIZE}`;
   }, []);
 
   const rememberPage = useCallback((key: string, payload: IconPagePayload) => {
     pageCacheRef.current.set(key, payload);
-    while (pageCacheRef.current.size > PAGE_CACHE_SIZE) {
+    while (pageCacheRef.current.size > ICON_CATALOG_PAGE_CACHE_SIZE) {
       const firstKey = pageCacheRef.current.keys().next().value;
       if (!firstKey) {
         break;
@@ -65,7 +69,11 @@ export function useIconCatalog({
 
   const requestIcons = useCallback(
     async (targetPage: number, query: string): Promise<IconPagePayload> => {
-      return fetchLocalIconsPage(targetPage, PAGE_SIZE, query || undefined);
+      return fetchLocalIconsPage(
+        targetPage,
+        ICON_CATALOG_PAGE_SIZE,
+        query || undefined,
+      );
     },
     [],
   );
@@ -197,7 +205,10 @@ export function useIconCatalog({
   }, [customIcons, iconPage, searchQuery]);
 
   const maxPage = useMemo(() => {
-    return Math.max(1, Math.ceil(Math.max(iconTotal, 1) / PAGE_SIZE));
+    return Math.max(
+      1,
+      Math.ceil(Math.max(iconTotal, 1) / ICON_CATALOG_PAGE_SIZE),
+    );
   }, [iconTotal]);
 
   return {

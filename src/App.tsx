@@ -9,27 +9,25 @@ import {
   defaultAnimationClip,
   defaultEffects,
   defaultForeground,
-} from "./core/constants";
+  normalizeAnimationClipState,
+  loadIconSettings,
+  useEditorStore,
+} from "./core/editor";
 import type {
   AnimationClipConfig,
   AnimationClipState,
+  AnimationPathSettings,
+  ForegroundPathSettings,
   ForegroundStyleState,
   ParsedSvg,
-} from "./core/types";
-import { normalizeAnimationClipState } from "./core/animation-clip";
+} from "./core/editor";
 import {
   buildCompositeSvg,
   buildPreviewTransform,
-} from "./utils/svg";
-import { parseSvgBreakout } from "./utils/svg-breakout";
-import { buildForegroundComposite } from "./utils/foreground-composite";
-import {
-  type AnimationPathSettings,
-  loadIconSettings,
-  type ForegroundPathSettings,
-} from "./core/icon-history";
-import type { IconLockEntry } from "./core/icon-client";
-import { useEditorStore } from "./core/editorStore";
+  parseSvgBreakout,
+  buildForegroundComposite,
+} from "./core/svg-compositor";
+import type { IconLockEntry } from "./core/icon-catalog";
 import { useIconAssignment } from "./hooks/useIconAssignment";
 import { useIconCatalog } from "./hooks/useIconCatalog";
 

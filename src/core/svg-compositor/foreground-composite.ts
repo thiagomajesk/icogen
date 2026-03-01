@@ -1,4 +1,4 @@
-import type { ForegroundStyleState, ParsedSvg } from "../core/types";
+import type { ForegroundStyleState, ParsedSvg } from "../editor";
 import {
   buildForegroundStyledSvg,
   parseSvgBreakout,

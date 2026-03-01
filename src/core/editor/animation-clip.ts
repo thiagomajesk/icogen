@@ -625,10 +625,6 @@ const ANIMATION_PRESET_BY_VALUE = new Map(
   ANIMATION_PRESETS.map((preset) => [preset.value, preset]),
 );
 
-const LEGACY_PRESET_ALIASES: Record<string, AnimationPresetValue> = {
-  wiggle: "headShake",
-};
-
 export function resolveAnimationPresetSteps(
   presetValue: AnimationPresetValue,
 ): ThreeStepAnimation | null {
@@ -636,8 +632,7 @@ export function resolveAnimationPresetSteps(
     return null;
   }
 
-  const resolvedPresetValue = LEGACY_PRESET_ALIASES[presetValue] ?? presetValue;
-  const preset = ANIMATION_PRESET_BY_VALUE.get(resolvedPresetValue);
+  const preset = ANIMATION_PRESET_BY_VALUE.get(presetValue);
   return preset?.steps ?? null;
 }
 
@@ -647,9 +642,8 @@ function normalizePresetValue(input: unknown): AnimationPresetValue {
   }
 
   if (typeof input === "string") {
-    const resolvedPresetValue = LEGACY_PRESET_ALIASES[input] ?? input;
-    if (ANIMATION_PRESET_BY_VALUE.has(resolvedPresetValue)) {
-      return resolvedPresetValue;
+    if (ANIMATION_PRESET_BY_VALUE.has(input as AnimationPresetValue)) {
+      return input as AnimationPresetValue;
     }
   }
 
@@ -659,16 +653,10 @@ function normalizePresetValue(input: unknown): AnimationPresetValue {
 export function normalizeAnimationClipState(
   clip: Partial<AnimationClipState> | null | undefined,
 ): AnimationClipState {
-  // Backward compatibility with previous shape where `enabled` existed.
-  const legacyEnabled =
-    clip && typeof (clip as Record<string, unknown>).enabled === "boolean"
-      ? Boolean((clip as Record<string, unknown>).enabled)
-      : false;
-
   const preset = normalizePresetValue(clip?.preset);
 
   return {
-    preset: preset === "none" && legacyEnabled ? "headShake" : preset,
+    preset,
     durationMs:
       typeof clip?.durationMs === "number" && Number.isFinite(clip.durationMs)
         ? Math.max(200, Math.round(clip.durationMs))

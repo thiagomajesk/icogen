@@ -1,4 +1,4 @@
-import type { ForegroundStyleState } from "../core/types";
+import type { ForegroundStyleState } from "../editor";
 
 function normalizeFillColor(fill: string): string {
   return fill.trim().toLowerCase().replace(/\s+/g, "");

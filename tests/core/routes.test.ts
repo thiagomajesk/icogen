@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildEditorPath, parseAppRoute, routeToIconPath } from "../../src/core/routes";
+import { buildEditorPath, parseAppRoute, routeToIconPath } from "../../src/core/navigation";
 
 test("parseAppRoute parses home and gallery routes", () => {
   assert.deepEqual(parseAppRoute("/"), { kind: "home" });

@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import "../dom-shim";
-import { defaultForeground } from "../../src/core/constants";
-import type { ForegroundStyleState } from "../../src/core/types";
-import { buildForegroundComposite } from "../../src/utils/foreground-composite";
+import { defaultForeground } from "../../src/core/editor";
+import type { ForegroundStyleState } from "../../src/core/editor";
+import { buildForegroundComposite } from "../../src/core/svg-compositor";
 
 const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path fill="#000" d="M1 1L2 2Z"/><path fill="#fff" d="M3 3L4 4Z"/></svg>`;
 

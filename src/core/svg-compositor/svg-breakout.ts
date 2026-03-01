@@ -1,4 +1,4 @@
-import type { ForegroundStyleState } from "../core/types";
+import type { ForegroundStyleState } from "../editor";
 import {
   buildCenteredForegroundTransform,
   buildForegroundGradientDef,

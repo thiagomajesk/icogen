@@ -1,10 +1,10 @@
-import {
+import type {
   AnimationClipState,
   BackgroundStyleState,
   CustomIcon,
   ForegroundStyleState,
   IconMeta,
-} from "../core/types";
+} from "../core/editor";
 import { IconBrowserPanel } from "./IconBrowserPanel";
 import { SelectedIconStylePanel } from "./SelectedIconStylePanel";
 
